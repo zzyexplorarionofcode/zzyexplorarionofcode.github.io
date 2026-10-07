@@ -24,6 +24,7 @@
     --card-dk: #000000;
     --hair:    #B8BCC4;
     --serif:   Georgia, "Times New Roman", "Songti SC", "SimSun", "STSong", serif;
+    --fig-h:   clamp(240px, 48vh, 420px); /* 单图基准高度：图整体变小、不再撑满整屏 */
   }
 
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -86,6 +87,7 @@
     flex:1 1 auto;
     min-height:0;
     display:flex;flex-direction:column;
+    justify-content:center; /* 内容垂直居中：纯文字页不再「上满下空」 */
     padding:clamp(.7rem,2.2%,1.7rem) clamp(1rem,3.6%,46px) 0;
     overflow:hidden;
   }
@@ -187,14 +189,13 @@
     color:var(--muted);font-style:italic;line-height:1.35;
     margin-top:clamp(.2rem,.6%,.35rem);
   }
-  /* 通栏单图：高度铺满，宽度 = 高 × 比例 */
-  .fig.grow{flex:1 1 auto;min-height:0;}
+  /* 通栏单图：靠左、定高，宽度 = 高 × 比例，不再撑满剩余空间 */
+  .fig.grow{flex:0 0 auto;min-height:0;}
   .fig.grow .frame{
-    flex:1 1 auto;min-height:0;
-    align-self:center;      /* 宽度不拉伸，交给 aspect-ratio */
-    width:auto;
+    flex:0 0 auto;
+    align-self:flex-start;  /* 图统一靠左 */
+    width:min(100%, calc(var(--fig-h) * var(--ar,2)));
     aspect-ratio:var(--ar,2);
-    max-width:100%;
   }
 
   .fig-row{
@@ -212,7 +213,7 @@
     aspect-ratio:var(--ar,2);
     max-height:100%;
   }
-  .fig-row.grow{flex:1 1 auto;min-height:0;}
+  .fig-row.grow{flex:0 0 auto;min-height:0;}
   /* 左右分栏里的文字栏：自身可滚动，避免把图挤扁 */
   .fig-row.split > .side{min-height:0;overflow:hidden;}
 
@@ -325,7 +326,7 @@
     html,body{overflow:auto;}
     .slide{position:relative;inset:auto;min-height:100vh;overflow:visible;}
     .slide.active{display:flex;}
-    .stage{overflow:visible;padding-bottom:1rem;}
+    .stage{overflow:visible;padding-bottom:1rem;justify-content:flex-start;}
     .stage > *,.fig.grow,.fig-row.grow{flex:0 0 auto;}
     .cols.c2,.cols.c3,.cols.c4{--n:1;}
     .flow,.fig-row,.fig-row.c3,.fig-row.split{grid-template-columns:1fr;grid-template-rows:none;}
