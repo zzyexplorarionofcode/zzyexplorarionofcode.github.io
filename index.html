@@ -367,7 +367,7 @@
       <div class="it"><div class="n">1</div><div><div class="t">背景与问题</div><div class="d">静态轨迹评测为什么失效 · 原文 Table 1</div></div></div>
       <div class="it"><div class="n">2</div><div><div class="t">核心贡献与机制</div><div class="d">环境总览 · 参数化实例 · 结果导向奖励 · 任务构成</div></div></div>
       <div class="it"><div class="n">3</div><div><div class="t">实验与结果</div><div class="d">主结果 · Agent 外壳的作用 · 鲁棒性分析</div></div></div>
-      <div class="it"><div class="n">4</div><div><div class="t">辩证评价</div><div class="d">贡献边界 · 可扩展性 vs 可移植性 · 历史定位</div></div></div>
+      <div class="it"><div class="n">4</div><div><div class="t">辩证评价</div><div class="d">贡献边界 · 可扩展性 vs 可移植性 · 继承与最新进展</div></div></div>
     </div>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>02</span></div>
@@ -733,6 +733,59 @@
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>15</span></div>
 </section>
 
+<!-- ═══════════════ 16 继承 · Mobile-Agent → AndroidWorld ═══════════════ -->
+<section class="slide">
+  <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Lineage</span><span class="zh">与前作的继承</span></div>
+  <div class="stage">
+    <h2 class="claim">先有 Agent，后有环境：从 Mobile-Agent 到 AndroidWorld</h2>
+    <p class="sub">Mobile-Agent built the agent; AndroidWorld built the arena to judge it.</p>
+    <div class="flow" style="grid-template-columns:1fr 1fr;margin-bottom:.6rem">
+      <div class="st"><div class="t">Mobile-Agent · 2024.1</div><div class="d">阿里×北交大：视觉中心 Agent，不依赖 XML／无障碍树，配套 Mobile-Eval</div></div>
+      <div class="st"><div class="t">AndroidWorld · 2024.4</div><div class="d">Google DeepMind：评测环境 + M3A baseline，结果导向奖励，ICLR 2025</div></div>
+    </div>
+    <div class="cols c2">
+      <div class="col">
+        <div class="rule"></div>
+        <div class="label">做 Agent</div>
+        <h3>Mobile-Agent：提视觉路线</h3>
+        <p>视觉感知定位界面元素，主张「摆脱无障碍树」，在多样化环境里更通用。</p>
+      </div>
+      <div class="col accent">
+        <div class="rule"></div>
+        <div class="label">做环境</div>
+        <h3>AndroidWorld：立统一标准</h3>
+        <p>用 M3A 把「文本 vs 视觉」两条路线放进同一把尺子，可复现地量。</p>
+      </div>
+    </div>
+    <div class="callout">
+      AndroidWorld 的 M3A 恰好把 Mobile-Agent 的「视觉中心」主张评测了一遍
+      <small>安卓无障碍树完整 → 文本 30.6% 胜过视觉 25.4%；多应用真实场景里视觉才不可替代。一个提路线，一个立标准来检验路线。</small>
+    </div>
+  </div>
+  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>16</span></div>
+</section>
+
+<!-- ═══════════════ 17 最新进展 · 历史任务 ═══════════════ -->
+<section class="slide">
+  <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Latest Progress</span><span class="zh">最新进展</span></div>
+  <div class="stage">
+    <h2 class="claim">AndroidWorld 的历史任务，基本完成了</h2>
+    <p class="sub">Saturated — recent agents exceed 90%; the baton has passed to MobileWorld.</p>
+    <div class="stats" style="margin-bottom:.8rem">
+      <div class="stat"><div class="n">90%+</div><div class="l">AndroidWorld<br>近年 Agent 成功率</div></div>
+      <div class="stat"><div class="n">27.8 : 14.3</div><div class="l">MobileWorld vs AndroidWorld<br>平均任务步数</div></div>
+      <div class="stat"><div class="n">62.2%</div><div class="l">MobileWorld<br>多应用任务占比</div></div>
+      <div class="stat"><div class="n">51.7%</div><div class="l">MobileWorld<br>SOTA 成功率</div></div>
+    </div>
+    <ul class="pts">
+      <li><b>接棒者 MobileWorld</b>（2025.12，ACL 2026）：201 任务 / 20 应用，更长、更多交互、加入 MCP 工具——把难度抬回「没做完」的区间</li>
+      <li><b>但 AndroidWorld 没退役</b>：AndroidWMSearch、AgentProg、K²-Agent 等新方法仍拿它当标准测试场</li>
+      <li>辩证结论：它完成了「立标准」的历史任务——真实环境 + state-based 奖励 + 可复现，已成移动 Agent 评测的标配；它不再是前沿，但成了公共擂台</li>
+    </ul>
+  </div>
+  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>17</span></div>
+</section>
+
 <!-- ═══════════════ 16 收尾 ═══════════════ -->
 <section class="slide">
   <div class="banner"><span class="sec">Conclusion</span><span class="zh">结论</span></div>
@@ -749,7 +802,7 @@
       <div class="stat"><div class="n">30.6%</div><div class="l">最好 Agent<br>对比人类 80.0%</div></div>
     </div>
   </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>16</span></div>
+  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>18</span></div>
 </section>
 
 </div><!-- /#deck -->
