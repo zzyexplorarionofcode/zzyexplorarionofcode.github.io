@@ -94,12 +94,12 @@
   .stage > *{flex:0 0 auto;}
 
   .claim{
-    font-size:clamp(.95rem,2.1vw,1.62rem);
+    font-size:clamp(1.15rem,2.6vw,2rem);
     font-weight:700;color:var(--ink);line-height:1.26;
     margin-bottom:clamp(.25rem,.8%,.55rem);
   }
   .sub{
-    font-size:clamp(.68rem,1.22vw,.95rem);
+    font-size:clamp(.78rem,1.4vw,1.08rem);
     color:var(--muted);line-height:1.45;font-style:italic;
     margin-bottom:clamp(.5rem,1.6%,1.1rem);
   }
@@ -118,7 +118,7 @@
   .col.accent .rule{background:var(--accent);}
 
   .label{
-    font-size:clamp(.54rem,.95vw,.73rem);
+    font-size:clamp(.6rem,1.05vw,.82rem);
     letter-spacing:.13em;text-transform:uppercase;
     color:var(--muted);font-weight:700;
     margin-bottom:clamp(.24rem,.8%,.5rem);
@@ -126,12 +126,12 @@
   .col.accent .label{color:var(--accent);}
 
   .col h3{
-    font-size:clamp(.76rem,1.4vw,1.08rem);
+    font-size:clamp(.9rem,1.7vw,1.3rem);
     font-weight:700;color:var(--ink);line-height:1.28;
     margin-bottom:clamp(.24rem,.8%,.5rem);
   }
   .col p{
-    font-size:clamp(.64rem,1.12vw,.88rem);
+    font-size:clamp(.76rem,1.35vw,1.02rem);
     line-height:1.55;color:var(--body);
   }
   .col p + p{margin-top:.42em;}
@@ -141,7 +141,7 @@
   .vs .box{
     flex:1 1 0;display:flex;align-items:center;justify-content:center;text-align:center;
     padding:clamp(.45rem,1.2%,.85rem);
-    font-size:clamp(.68rem,1.24vw,.95rem);font-weight:700;line-height:1.3;
+    font-size:clamp(.8rem,1.5vw,1.12rem);font-weight:700;line-height:1.3;
   }
   .vs .box.lt{background:var(--card-lt);color:var(--ink);}
   .vs .box.dk{background:var(--card-dk);color:#fff;}
@@ -151,7 +151,7 @@
   }
   .vs .arrow .ln{width:100%;height:2px;background:var(--accent);}
   .vs .arrow .tx{
-    font-size:clamp(.5rem,.82vw,.64rem);color:var(--accent);
+    font-size:clamp(.58rem,.95vw,.72rem);color:var(--accent);
     font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.15;
   }
 
@@ -159,7 +159,7 @@
   .callout{
     background:var(--card-dk);color:#fff;
     padding:clamp(.5rem,1.4%,.9rem) clamp(.8rem,2.2%,1.4rem);
-    font-size:clamp(.75rem,1.34vw,1.02rem);
+    font-size:clamp(.9rem,1.6vw,1.22rem);
     font-weight:700;line-height:1.38;text-align:center;
   }
   .callout small{
@@ -220,25 +220,25 @@
   /* ── 流程条 ── */
   .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.35rem,1.1%,.75rem);}
   .flow .st{border:1.5px dashed var(--hair);padding:clamp(.32rem,.9%,.6rem);}
-  .flow .st .t{font-size:clamp(.58rem,1vw,.8rem);font-weight:700;color:var(--banner);margin-bottom:.25em;}
-  .flow .st .d{font-size:clamp(.52rem,.9vw,.69rem);color:var(--muted);line-height:1.45;}
+  .flow .st .t{font-size:clamp(.68rem,1.2vw,.95rem);font-weight:700;color:var(--banner);margin-bottom:.25em;}
+  .flow .st .d{font-size:clamp(.6rem,1.05vw,.8rem);color:var(--muted);line-height:1.45;}
 
   /* ── 大数字 ── */
   .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(.8rem,4%,3rem);}
   .stat{text-align:center;}
   .stat .n{
-    font-size:clamp(1.1rem,2.6vw,2rem);
+    font-size:clamp(1.3rem,3vw,2.4rem);
     font-weight:700;color:var(--banner);line-height:1.1;
     font-variant-numeric:tabular-nums;
   }
-  .stat .l{font-size:clamp(.54rem,.94vw,.75rem);color:var(--muted);margin-top:.3em;line-height:1.4;}
+  .stat .l{font-size:clamp(.62rem,1.1vw,.88rem);color:var(--muted);margin-top:.3em;line-height:1.4;}
 
   /* ── 列表 ── */
   ul.pts{list-style:none;}
   ul.pts li{
     position:relative;padding-left:1.1em;
     margin-bottom:clamp(.2rem,.7%,.4rem);
-    font-size:clamp(.64rem,1.14vw,.88rem);
+    font-size:clamp(.76rem,1.35vw,1.02rem);
     line-height:1.5;color:var(--body);
   }
   ul.pts li:last-child{margin-bottom:0;}
@@ -286,9 +286,9 @@
     padding:clamp(.26rem,.85%,.55rem) 0;
     border-bottom:1px solid #E8E9EB;
   }
-  .toc .n{font-size:clamp(.8rem,1.7vw,1.28rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
-  .toc .t{font-size:clamp(.72rem,1.32vw,1.02rem);font-weight:700;color:var(--ink);}
-  .toc .d{font-size:clamp(.56rem,.94vw,.74rem);color:var(--muted);margin-top:.12em;}
+  .toc .n{font-size:clamp(.9rem,1.9vw,1.5rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .toc .t{font-size:clamp(.85rem,1.55vw,1.2rem);font-weight:700;color:var(--ink);}
+  .toc .d{font-size:clamp(.65rem,1.1vw,.85rem);color:var(--muted);margin-top:.12em;}
 
   /* ── 控制条 ── */
   #prog{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:60;transition:width .3s ease;}
@@ -402,6 +402,9 @@
     <div class="callout">
       如果只看动作像不像标准答案，我们究竟在评测 Agent，还是在评测它像不像人类？
     </div>
+    <ul class="pts" style="margin-top:1rem">
+      <li>静态数据集的样本固定，Agent 可以「背答案」；在线环境每次都不同，逼 Agent 学「操作」而非「复述」——评测范式在这里转了向</li>
+    </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>03</span></div>
 </section>
@@ -607,10 +610,9 @@
       </div>
     </div>
     <ul class="pts">
-      <li>提升<span class="hi">不来自换模型</span>，而来自提示词工程、领域知识与界面表示法</li>
-      <li>反向证据：GPT-4 换成多模态 SoM 输入，在 AndroidWorld 上降到 <b>25.4%</b>，低于纯文本的 30.6%</li>
-      <li>但同一个 SoM 变体在 MobileMiniWoB++ 上拿到 <b>67.7%</b>，是全表最高——<b>结论随环境翻转</b></li>
-      <li>论文解释：网页任务的无障碍树往往不完整，SoM 的视觉标注在那里才不可替代</li>
+      <li>同一个模型，只把提示词从「最简」补到「操作指南＋反思机制＋规范化界面」，就 <span class="hi">19.8% → 30.6%</span>——提升不来自换模型，来自外壳</li>
+      <li><b>侧面证据</b>：连「界面表示」这一项也随环境翻转——SoM 视觉输入在安卓降到 25.4%，在网页却冲到 67.7%（网页无障碍树常残缺，视觉标注才不可替代）</li>
+      <li>方法论含义：Agent 的得分里混着「模型能力」和「外壳设计」两部分，不拆开就说不清是谁在涨分</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>11</span></div>
@@ -669,6 +671,7 @@
     <ul class="pts" style="margin-top:1rem">
       <li>单看每一项都有人做过，<b>难的是把它们拼成一个能跑起来、能复现的整体</b></li>
       <li>这才是它被 ICLR 接收的理由——<span class="tl">工程整合本身也是一种学术贡献</span></li>
+      <li>所以别期待单项技术惊艳，它的份量在「整合的完整性」与「可复现的诚意」</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>13</span></div>
@@ -723,6 +726,9 @@
       它的贡献不是更强的 Agent，而是更接近真实世界的评测方式。
       <small>任务结构与应用范围仍由人工设计，因此它更适合作为走向开放世界评测的中间阶段</small>
     </div>
+    <ul class="pts" style="margin-top:1rem">
+      <li>时间线定位：它把 OSWorld 的「state-based」思路搬上安卓，接住「动态实例化」，为后续移动 Agent 评测立了参照</li>
+    </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>15</span></div>
 </section>
@@ -733,6 +739,10 @@
   <div class="stage" style="justify-content:center;text-align:center">
     <h2 class="claim" style="text-align:center;font-size:clamp(.95rem,1.8vw,1.45rem)">谢谢，欢迎批评与讨论</h2>
     <p class="sub" style="text-align:center;margin-bottom:1.5rem">Thank you.</p>
+    <div class="callout" style="margin-bottom:1.5rem">
+      核心贡献是「动态评测环境」而非「更强的 Agent」——结果导向奖励 + 可复现，给后续 Agent 立起公共擂台。
+      <small>但可移植性被冻结在已适配的 20 个应用里</small>
+    </div>
     <div class="stats">
       <div class="stat"><div class="n">116</div><div class="l">安卓任务模板<br>（91 手工 + 25 生成）</div></div>
       <div class="stat"><div class="n">92</div><div class="l">MobileMiniWoB++<br>网页任务</div></div>
