@@ -403,7 +403,7 @@
       如果只看动作像不像标准答案，我们究竟在评测 Agent，还是在评测它像不像人类？
     </div>
     <ul class="pts" style="margin-top:1rem">
-      <li>静态数据集的样本固定，Agent 可以「背答案」；在线环境每次都不同，逼 Agent 学「操作」而非「复述」——评测范式在这里转了向</li>
+      <li>静态数据集的样本固定，Agent 可以「背答案」；在线环境每次都不同，逼 Agent 学「操作」而非「复述」——评测的路子在这里拐了个弯</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>03</span></div>
@@ -610,9 +610,9 @@
       </div>
     </div>
     <ul class="pts">
-      <li>同一个模型，只把提示词从「最简」补到「操作指南＋反思机制＋规范化界面」，就 <span class="hi">19.8% → 30.6%</span>——提升不来自换模型，来自外壳</li>
+      <li>同一个模型，只把提示词从「最简」补到「操作指南＋反思机制＋规范化界面」，就 <span class="hi">19.8% → 30.6%</span>——涨的分跟模型无关，全在外壳上</li>
       <li><b>侧面证据</b>：连「界面表示」这一项也随环境翻转——SoM 视觉输入在安卓降到 25.4%，在网页却冲到 67.7%（网页无障碍树常残缺，视觉标注才不可替代）</li>
-      <li>方法论含义：Agent 的得分里混着「模型能力」和「外壳设计」两部分，不拆开就说不清是谁在涨分</li>
+      <li>这提醒我们：Agent 的得分里混着「模型能力」和「外壳设计」两块，不拆开，涨分就算不清到底算谁的</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>11</span></div>
@@ -671,7 +671,7 @@
     <ul class="pts" style="margin-top:1rem">
       <li>单看每一项都有人做过，<b>难的是把它们拼成一个能跑起来、能复现的整体</b></li>
       <li>这才是它被 ICLR 接收的理由——<span class="tl">工程整合本身也是一种学术贡献</span></li>
-      <li>所以别期待单项技术惊艳，它的份量在「整合的完整性」与「可复现的诚意」</li>
+      <li>所以别指望单项技术多惊艳，它值钱的地方，是把这些都拼成了一个完整、能复现的整体</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>13</span></div>
@@ -727,7 +727,7 @@
       <small>任务结构与应用范围仍由人工设计，因此它更适合作为走向开放世界评测的中间阶段</small>
     </div>
     <ul class="pts" style="margin-top:1rem">
-      <li>时间线定位：它把 OSWorld 的「state-based」思路搬上安卓，接住「动态实例化」，为后续移动 Agent 评测立了参照</li>
+      <li>顺着时间线看：它把 OSWorld 的「state-based」思路搬上安卓，接住「动态实例化」，给后来的移动 Agent 评测留了个参照</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>15</span></div>
@@ -737,7 +737,7 @@
 <section class="slide">
   <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Lineage</span><span class="zh">与前作的继承</span></div>
   <div class="stage">
-    <h2 class="claim">先有 Agent，后有环境：从 Mobile-Agent 到 AndroidWorld</h2>
+    <h2 class="claim">Mobile-Agent 负责「做」，AndroidWorld 负责「评」</h2>
     <p class="sub">Mobile-Agent built the agent; AndroidWorld built the arena to judge it.</p>
     <div class="flow" style="grid-template-columns:1fr 1fr;margin-bottom:.6rem">
       <div class="st"><div class="t">Mobile-Agent · 2024.1</div><div class="d">阿里×北交大：视觉中心 Agent，不依赖 XML／无障碍树，配套 Mobile-Eval</div></div>
@@ -758,8 +758,8 @@
       </div>
     </div>
     <div class="callout">
-      AndroidWorld 的 M3A 恰好把 Mobile-Agent 的「视觉中心」主张评测了一遍
-      <small>安卓无障碍树完整 → 文本 30.6% 胜过视觉 25.4%；多应用真实场景里视觉才不可替代。一个提路线，一个立标准来检验路线。</small>
+      有意思的是，AndroidWorld 的 M3A 反过来检验了 Mobile-Agent 的「视觉中心」主张
+      <small>安卓无障碍树完整 → 文本 30.6% 胜过视觉 25.4%；多应用真实场景里视觉才不可替代。一个负责提路线，一个负责立标准，标准再回过头检验路线。</small>
     </div>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>16</span></div>
@@ -778,9 +778,9 @@
       <div class="stat"><div class="n">51.7%</div><div class="l">MobileWorld<br>SOTA 成功率</div></div>
     </div>
     <ul class="pts">
-      <li><b>接棒者 MobileWorld</b>（2025.12，ACL 2026）：201 任务 / 20 应用，更长、更多交互、加入 MCP 工具——把难度抬回「没做完」的区间</li>
+      <li><b>接棒者 MobileWorld</b>（2025.12，ACL 2026）：201 任务 / 20 应用，更长、更多交互、加入 MCP 工具——难度一下子又回到「离做完还远」的水平</li>
       <li><b>但 AndroidWorld 没退役</b>：AndroidWMSearch、AgentProg、K²-Agent 等新方法仍拿它当标准测试场</li>
-      <li>辩证结论：它完成了「立标准」的历史任务——真实环境 + state-based 奖励 + 可复现，已成移动 Agent 评测的标配；它不再是前沿，但成了公共擂台</li>
+      <li>说到底，它完成了「立标准」这件事——真实环境、state-based 奖励、可复现，现在都成了移动 Agent 评测的标配；它不再是前沿，但成了大家共用的擂台</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>17</span></div>
@@ -793,7 +793,7 @@
     <h2 class="claim" style="text-align:center;font-size:clamp(.95rem,1.8vw,1.45rem)">谢谢，欢迎批评与讨论</h2>
     <p class="sub" style="text-align:center;margin-bottom:1.5rem">Thank you.</p>
     <div class="callout" style="margin-bottom:1.5rem">
-      核心贡献是「动态评测环境」而非「更强的 Agent」——结果导向奖励 + 可复现，给后续 Agent 立起公共擂台。
+      核心贡献是「动态评测环境」而非「更强的 Agent」——结果导向奖励 + 可复现，给后来的 Agent 提供了一个共用的擂台。
       <small>但可移植性被冻结在已适配的 20 个应用里</small>
     </div>
     <div class="stats">
