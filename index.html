@@ -45,6 +45,7 @@
     display:none;
     flex-direction:column;
     background:var(--bg);
+    overflow:hidden;
     opacity:0;
     transition:opacity .3s ease;
   }
@@ -54,85 +55,91 @@
   .banner{
     flex:0 0 auto;
     background:var(--banner);
-    height:clamp(50px,13%,104px);
-    display:flex;
-    align-items:center;
+    height:clamp(44px,12%,96px);
+    display:flex;align-items:center;
     padding:0 clamp(1rem,3.6%,46px);
     gap:clamp(.5rem,1.4vw,1.1rem);
     color:#fff;
   }
-  .banner .num{font-size:clamp(1.4rem,3.9vw,3rem);font-weight:700;line-height:1;}
+  .banner .num{font-size:clamp(1.3rem,3.6vw,2.8rem);font-weight:700;line-height:1;}
   .banner .slash{
-    width:2px;height:clamp(1.3rem,3.3vw,2.5rem);
+    width:2px;height:clamp(1.2rem,3vw,2.3rem);
     background:#fff;transform:rotate(18deg);opacity:.85;flex:0 0 auto;
   }
   .banner .sec{
-    font-size:clamp(.9rem,2.85vw,2.2rem);
-    font-weight:400;letter-spacing:.005em;line-height:1.1;text-transform:uppercase;
+    font-size:clamp(.85rem,2.6vw,2rem);
+    font-weight:400;line-height:1.1;text-transform:uppercase;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .banner .zh{
-    font-size:clamp(.58rem,1vw,.82rem);
-    color:#B9CEDF;letter-spacing:.22em;margin-left:.4rem;white-space:nowrap;
+    font-size:clamp(.55rem,.95vw,.78rem);
+    color:#B9CEDF;letter-spacing:.2em;margin-left:.4rem;white-space:nowrap;
   }
 
-  /* ── 主内容区 ── */
+  /* ═══════════════ 布局基调 ═══════════════
+     关键约定：.stage 的直接子元素一律 flex:0 0 auto（不许被压缩），
+     只有标了 .grow 的图区才吸收剩余空间。
+     之前把 .cols 也设成 min-height:0，导致 flex 把它压成 0 高、
+     内部网格行溢出后互相叠在一起——这条约定就是为了根治那个问题。
+     ═══════════════════════════════════════ */
   .stage{
     flex:1 1 auto;
+    min-height:0;
     display:flex;flex-direction:column;
-    padding:clamp(.8rem,2.3%,1.9rem) clamp(1rem,3.6%,46px) 0;
-    overflow:hidden;min-height:0;
+    padding:clamp(.7rem,2.2%,1.7rem) clamp(1rem,3.6%,46px) 0;
+    overflow:hidden;
   }
+  .stage > *{flex:0 0 auto;}
 
   .claim{
-    font-size:clamp(1rem,2.2vw,1.72rem);
-    font-weight:700;color:var(--ink);line-height:1.28;
-    margin-bottom:clamp(.3rem,1%,.7rem);
+    font-size:clamp(.95rem,2.1vw,1.62rem);
+    font-weight:700;color:var(--ink);line-height:1.26;
+    margin-bottom:clamp(.25rem,.8%,.55rem);
   }
   .sub{
-    font-size:clamp(.7rem,1.28vw,1rem);
-    color:var(--muted);line-height:1.5;font-style:italic;
-    margin-bottom:clamp(.6rem,2%,1.4rem);
+    font-size:clamp(.68rem,1.22vw,.95rem);
+    color:var(--muted);line-height:1.45;font-style:italic;
+    margin-bottom:clamp(.5rem,1.6%,1.1rem);
   }
   .sub.plain{font-style:normal;}
 
   /* ── 多列 ── */
   .cols{
     display:grid;grid-template-columns:repeat(var(--n,3),1fr);
-    gap:clamp(.8rem,3%,2.2rem);
-    margin-bottom:clamp(.5rem,1.6%,1.1rem);
-    min-height:0;
+    gap:clamp(.7rem,2.6%,2rem);
+    margin-bottom:clamp(.4rem,1.3%,.9rem);
   }
   .cols.c2{--n:2;} .cols.c3{--n:3;} .cols.c4{--n:4;}
 
   .col{min-width:0;}
-  .col .rule{height:2px;background:var(--ink);margin-bottom:clamp(.4rem,1.2%,.8rem);}
-  .col.hot .rule{background:var(--accent);}
+  .col .rule{height:2px;background:var(--ink);margin-bottom:clamp(.35rem,1%,.7rem);}
+  .col.accent .rule{background:var(--accent);}
 
   .label{
-    font-size:clamp(.56rem,1vw,.76rem);
+    font-size:clamp(.54rem,.95vw,.73rem);
     letter-spacing:.13em;text-transform:uppercase;
     color:var(--muted);font-weight:700;
-    margin-bottom:clamp(.28rem,.9%,.55rem);
+    margin-bottom:clamp(.24rem,.8%,.5rem);
   }
-  .col.hot .label{color:var(--accent);}
+  .col.accent .label{color:var(--accent);}
 
   .col h3{
-    font-size:clamp(.8rem,1.48vw,1.14rem);
-    font-weight:700;color:var(--ink);line-height:1.3;
-    margin-bottom:clamp(.28rem,.9%,.55rem);
+    font-size:clamp(.76rem,1.4vw,1.08rem);
+    font-weight:700;color:var(--ink);line-height:1.28;
+    margin-bottom:clamp(.24rem,.8%,.5rem);
   }
   .col p{
-    font-size:clamp(.66rem,1.18vw,.92rem);
-    line-height:1.6;color:var(--body);
+    font-size:clamp(.64rem,1.12vw,.88rem);
+    line-height:1.55;color:var(--body);
   }
-  .col p + p{margin-top:.45em;}
+  .col p + p{margin-top:.42em;}
 
   /* ── 黑白对比卡 ── */
-  .vs{display:flex;align-items:stretch;gap:clamp(.4rem,1.2%,1rem);margin:clamp(.35rem,1.2%,.8rem) 0;}
+  .vs{display:flex;align-items:stretch;gap:clamp(.4rem,1.2%,1rem);margin:clamp(.3rem,1%,.7rem) 0;}
   .vs .box{
     flex:1 1 0;display:flex;align-items:center;justify-content:center;text-align:center;
-    padding:clamp(.5rem,1.4%,.95rem);
-    font-size:clamp(.7rem,1.3vw,1rem);font-weight:700;line-height:1.32;
+    padding:clamp(.45rem,1.2%,.85rem);
+    font-size:clamp(.68rem,1.24vw,.95rem);font-weight:700;line-height:1.3;
   }
   .vs .box.lt{background:var(--card-lt);color:var(--ink);}
   .vs .box.dk{background:var(--card-dk);color:#fff;}
@@ -142,144 +149,150 @@
   }
   .vs .arrow .ln{width:100%;height:2px;background:var(--accent);}
   .vs .arrow .tx{
-    font-size:clamp(.5rem,.84vw,.66rem);color:var(--accent);
+    font-size:clamp(.5rem,.82vw,.64rem);color:var(--accent);
     font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.15;
   }
 
   /* ── 黑色强调框 ── */
   .callout{
     background:var(--card-dk);color:#fff;
-    padding:clamp(.55rem,1.6%,1.05rem) clamp(.8rem,2.2%,1.5rem);
-    font-size:clamp(.78rem,1.42vw,1.08rem);
-    font-weight:700;line-height:1.4;text-align:center;
+    padding:clamp(.5rem,1.4%,.9rem) clamp(.8rem,2.2%,1.4rem);
+    font-size:clamp(.75rem,1.34vw,1.02rem);
+    font-weight:700;line-height:1.38;text-align:center;
   }
   .callout small{
-    display:block;margin-top:.45em;font-size:.74em;font-weight:400;
+    display:block;margin-top:.4em;font-size:.74em;font-weight:400;
     color:#C9C9C9;font-style:italic;
   }
 
-  /* ── 原图容器（对应参考稿的虚线图框） ── */
-  .fig{
+  /* ═══════════════ 图区 ═══════════════
+     .fig 是竖排的「图框 + 图注」；.frame 负责按可用高度自适应缩放。
+     图片用 max-width/max-height 双向约束，永不溢出、永不变形。
+     ═══════════════════════════════════════ */
+  .fig{display:flex;flex-direction:column;min-height:0;}
+  .fig .frame{
     border:1.5px dashed var(--hair);
-    padding:clamp(.3rem,1%,.6rem);
-    background:#fff;min-width:0;
+    padding:clamp(.25rem,.7%,.5rem);
+    background:#fff;overflow:hidden;
+    box-sizing:border-box;
   }
-  .fig img{display:block;width:100%;height:auto;}
+  .fig .frame img{
+    display:block;
+    width:100%;height:100%;
+    object-fit:contain;
+  }
   .fig .cap{
-    font-size:clamp(.5rem,.86vw,.68rem);
-    color:var(--muted);font-style:italic;
-    margin-top:clamp(.25rem,.8%,.45rem);line-height:1.4;
+    flex:0 0 auto;
+    font-size:clamp(.48rem,.82vw,.65rem);
+    color:var(--muted);font-style:italic;line-height:1.35;
+    margin-top:clamp(.2rem,.6%,.35rem);
   }
+  /* 通栏单图：高度铺满，宽度 = 高 × 比例 */
+  .fig.grow{flex:1 1 auto;min-height:0;}
+  .fig.grow .frame{
+    flex:1 1 auto;min-height:0;
+    align-self:center;      /* 宽度不拉伸，交给 aspect-ratio */
+    width:auto;
+    aspect-ratio:var(--ar,2);
+    max-width:100%;
+  }
+
   .fig-row{
-    display:grid;grid-template-columns:1fr 1fr;
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;
     gap:clamp(.5rem,1.6%,1.2rem);
-    margin-bottom:clamp(.4rem,1.2%,.9rem);
   }
   .fig-row.c3{grid-template-columns:repeat(3,1fr);}
-  .fig-row.split{grid-template-columns:1.1fr .9fr;align-items:start;}
-
-  /* ── 表格 ── */
-  .tbl{width:100%;border-collapse:collapse;font-size:clamp(.6rem,1.08vw,.84rem);}
-  .tbl th,.tbl td{
-    text-align:left;padding:clamp(.28rem,.8%,.52rem) clamp(.35rem,.85%,.75rem);
-    border-bottom:1px solid var(--hair);white-space:nowrap;
+  .fig-row.split{grid-template-columns:1.05fr .95fr;}
+  .fig-row > .fig{
+    min-height:0;
+    display:flex;flex-direction:column;justify-content:center;
   }
-  .tbl th{
-    font-size:.86em;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--muted);font-weight:700;border-bottom:2px solid var(--ink);
+  .fig-row .fig .frame{
+    width:100%;
+    aspect-ratio:var(--ar,2);
+    max-height:100%;
   }
-  .tbl tr.hl td{background:#FFF3EE;color:var(--ink);font-weight:700;}
-  .tbl tr.hl td:first-child{color:var(--accent);}
-  .tbl td.num{font-variant-numeric:tabular-nums;}
-  .tbl .dim{color:var(--hair);}
+  .fig-row.grow{flex:1 1 auto;min-height:0;}
+  /* 左右分栏里的文字栏：自身可滚动，避免把图挤扁 */
+  .fig-row.split > .side{min-height:0;overflow:hidden;}
 
   /* ── 流程条 ── */
-  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.4rem,1.3%,1rem);}
-  .flow .st{border:1.5px dashed var(--hair);padding:clamp(.4rem,1.2%,.8rem);}
-  .flow .st .t{font-size:clamp(.6rem,1.06vw,.84rem);font-weight:700;color:var(--banner);margin-bottom:.3em;}
-  .flow .st .d{font-size:clamp(.54rem,.94vw,.72rem);color:var(--muted);line-height:1.5;}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.35rem,1.1%,.75rem);}
+  .flow .st{border:1.5px dashed var(--hair);padding:clamp(.32rem,.9%,.6rem);}
+  .flow .st .t{font-size:clamp(.58rem,1vw,.8rem);font-weight:700;color:var(--banner);margin-bottom:.25em;}
+  .flow .st .d{font-size:clamp(.52rem,.9vw,.69rem);color:var(--muted);line-height:1.45;}
 
   /* ── 大数字 ── */
-  .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(.9rem,4.5%,3.5rem);}
+  .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(.8rem,4%,3rem);}
   .stat{text-align:center;}
   .stat .n{
-    font-size:clamp(1.2rem,2.8vw,2.15rem);
+    font-size:clamp(1.1rem,2.6vw,2rem);
     font-weight:700;color:var(--banner);line-height:1.1;
     font-variant-numeric:tabular-nums;
   }
-  .stat .l{font-size:clamp(.56rem,.98vw,.78rem);color:var(--muted);margin-top:.35em;line-height:1.45;}
+  .stat .l{font-size:clamp(.54rem,.94vw,.75rem);color:var(--muted);margin-top:.3em;line-height:1.4;}
 
   /* ── 列表 ── */
   ul.pts{list-style:none;}
   ul.pts li{
-    position:relative;padding-left:1.15em;
-    margin-bottom:clamp(.24rem,.8%,.45rem);
-    font-size:clamp(.66rem,1.2vw,.92rem);
-    line-height:1.58;color:var(--body);
+    position:relative;padding-left:1.1em;
+    margin-bottom:clamp(.2rem,.7%,.4rem);
+    font-size:clamp(.64rem,1.14vw,.88rem);
+    line-height:1.5;color:var(--body);
   }
+  ul.pts li:last-child{margin-bottom:0;}
   ul.pts li::before{content:"—";position:absolute;left:0;color:var(--hair);}
   b,strong{color:var(--ink);font-weight:700;}
   .hi{color:var(--accent);font-weight:700;}
   .tl{color:var(--banner);font-weight:700;}
 
-  /* ── 引用块 ── */
-  .quote{
-    border-left:3px solid var(--banner);
-    padding:.1em 0 .1em .8em;
-    margin:clamp(.3rem,1%,.75rem) 0;
-    font-size:clamp(.6rem,1.06vw,.84rem);
-    line-height:1.55;color:var(--muted);font-style:italic;
-  }
-  .quote cite{
-    display:block;margin-top:.35em;font-style:normal;
-    font-size:.85em;color:var(--hair);font-family:var(--serif);
-  }
-
   /* ── 页脚 ── */
   .foot{
-    flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:space-between;
     border-top:1px solid var(--hair);
     margin:0 clamp(1rem,3.6%,46px);
-    padding:clamp(.3rem,.8%,.5rem) 0 clamp(.5rem,1.3%,.85rem);
-    font-size:clamp(.48rem,.8vw,.64rem);
-    color:var(--muted);letter-spacing:.01em;
+    padding:clamp(.28rem,.75%,.45rem) 0 clamp(.42rem,1.1%,.7rem);
+    font-size:clamp(.46rem,.78vw,.62rem);
+    color:var(--muted);
   }
 
   /* ── 封面 ── */
-  .cover .stage{justify-content:center;align-items:center;text-align:center;padding-bottom:2rem;}
+  .cover .stage{justify-content:center;align-items:center;text-align:center;padding-bottom:1.5rem;}
   .cover h1{
-    font-size:clamp(1.1rem,3vw,2.4rem);
+    font-size:clamp(1rem,2.8vw,2.2rem);
     font-weight:700;color:var(--ink);line-height:1.22;
-    max-width:22ch;margin:0 auto clamp(.6rem,2%,1.4rem);
+    max-width:22ch;margin:0 auto clamp(.5rem,1.8%,1.2rem);
   }
   .cover .zh-title{
-    font-size:clamp(.88rem,2vw,1.5rem);
+    font-size:clamp(.82rem,1.9vw,1.4rem);
     color:var(--banner);font-weight:700;
-    margin-bottom:clamp(1rem,4%,2.6rem);line-height:1.35;
+    margin-bottom:clamp(.9rem,3.5%,2.2rem);line-height:1.35;
   }
-  .cover .meta{font-size:clamp(.66rem,1.15vw,.9rem);color:var(--muted);line-height:1.85;}
+  .cover .meta{font-size:clamp(.62rem,1.1vw,.86rem);color:var(--muted);line-height:1.8;}
   .cover .venue{
-    position:absolute;left:0;right:0;bottom:clamp(1.8rem,6.5%,4.2rem);
-    text-align:center;font-size:clamp(.9rem,2.1vw,1.6rem);
+    flex:0 0 auto;text-align:center;
+    padding-bottom:clamp(1rem,4%,2.4rem);
+    font-size:clamp(.85rem,1.9vw,1.45rem);
     font-weight:700;color:var(--banner);
   }
 
   /* ── 目录 ── */
-  .toc{display:grid;gap:clamp(.25rem,.85%,.55rem);}
+  .toc{display:grid;gap:clamp(.15rem,.7%,.45rem);}
   .toc .it{
-    display:grid;grid-template-columns:clamp(1.5rem,3.2vw,2.6rem) 1fr;
+    display:grid;grid-template-columns:clamp(1.4rem,3vw,2.4rem) 1fr;
     align-items:baseline;gap:clamp(.5rem,1.5%,1rem);
-    padding:clamp(.3rem,.95%,.62rem) 0;
+    padding:clamp(.26rem,.85%,.55rem) 0;
     border-bottom:1px solid #E8E9EB;
   }
-  .toc .n{font-size:clamp(.85rem,1.8vw,1.35rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
-  .toc .t{font-size:clamp(.75rem,1.4vw,1.08rem);font-weight:700;color:var(--ink);}
-  .toc .d{font-size:clamp(.58rem,.98vw,.77rem);color:var(--muted);margin-top:.15em;}
+  .toc .n{font-size:clamp(.8rem,1.7vw,1.28rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .toc .t{font-size:clamp(.72rem,1.32vw,1.02rem);font-weight:700;color:var(--ink);}
+  .toc .d{font-size:clamp(.56rem,.94vw,.74rem);color:var(--muted);margin-top:.12em;}
 
   /* ── 控制条 ── */
   #prog{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:60;transition:width .3s ease;}
   #hud{
-    position:fixed;right:clamp(.6rem,2%,1.5rem);bottom:clamp(.5rem,1.6%,1.1rem);
+    position:fixed;right:clamp(.6rem,2%,1.5rem);bottom:clamp(.4rem,1.4%,.95rem);
     display:flex;align-items:center;gap:.7rem;z-index:50;
   }
   #dots{display:flex;gap:5px;}
@@ -290,7 +303,7 @@
   }
   #dots button:hover{background:var(--muted);transform:scale(1.3);}
   #dots button.on{background:var(--banner);transform:scale(1.3);}
-  #counter{font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.06em;}
+  #counter{font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums;}
   .hot{position:fixed;top:0;bottom:0;width:9%;z-index:40;cursor:pointer;}
   .hot.l{left:0;} .hot.r{right:0;}
 
@@ -300,13 +313,23 @@
     .flow{grid-template-columns:repeat(2,1fr);}
     .fig-row.c3{grid-template-columns:1fr 1fr;}
   }
+  /* 矮屏：优先削横幅与留白，把高度让给图 */
+  @media (max-height:700px){
+    .banner{height:clamp(40px,10%,72px);}
+    .stage{padding-top:.55rem;}
+    .claim{margin-bottom:.2rem;}
+    .sub{margin-bottom:.5rem;}
+  }
+  /* 窄屏：整页改为可滚动的长文档，图区不再吸收高度 */
   @media (max-width:720px){
     html,body{overflow:auto;}
-    .slide{position:relative;inset:auto;min-height:100vh;}
+    .slide{position:relative;inset:auto;min-height:100vh;overflow:visible;}
     .slide.active{display:flex;}
     .stage{overflow:visible;padding-bottom:1rem;}
+    .stage > *,.fig.grow,.fig-row.grow{flex:0 0 auto;}
     .cols.c2,.cols.c3,.cols.c4{--n:1;}
-    .flow,.fig-row,.fig-row.c3,.fig-row.split{grid-template-columns:1fr;}
+    .flow,.fig-row,.fig-row.c3,.fig-row.split{grid-template-columns:1fr;grid-template-rows:none;}
+    .fig .frame{max-height:none;}
     .vs{flex-direction:column;}
     .vs .arrow .ln{width:55%;}
     .hot{display:none;}
@@ -368,7 +391,7 @@
         <h3>在线环境不听话</h3>
         <p>真实环境里可以走多条不同路径，环境本身非确定，Agent 还会从错误中自我纠正。</p>
       </div>
-      <div class="col hot">
+      <div class="col accent">
         <div class="rule"></div>
         <div class="label">Missing Signal</div>
         <h3>「像不像」≠「成没成」</h3>
@@ -388,14 +411,13 @@
   <div class="stage">
     <h2 class="claim">论文表格里，有两列一眼定生死</h2>
     <p class="sub">Env? and Avg&nbsp;#&nbsp;task&nbsp;instances — the two columns that separate datasets from environments.</p>
-    <div class="fig" style="margin-bottom:.8rem">
-      <img src="assets/table1-comparison.png" alt="论文 Table 1：各类智能体评测数据集与环境的对比">
+    <div class="fig grow">
+      <div class="frame" style="--ar:1.484"><img src="assets/table1-comparison.png" alt="论文 Table 1：各类智能体评测数据集与环境的对比"></div>
       <div class="cap">原文 Table 1 ｜ Comparison of different datasets and environments for benchmarking computer agents.</div>
     </div>
-    <ul class="pts">
+    <ul class="pts" style="margin-top:.6rem">
       <li><b>Env? 打 ✗ 的一整组</b>是静态数据集：样本固定，只比动作序列</li>
       <li><b>Avg # task instances = 1</b> 意味着参数一改，奖励就可能失效</li>
-      <li>上下分界线很清楚：AndroidWorld 与 OSWorld 同属下半区，都用 <span class="tl">device state</span> 判分</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>04</span></div>
@@ -407,24 +429,18 @@
   <div class="stage">
     <h2 class="claim">它的贡献是「评测环境」，不是「更强的 Agent」</h2>
     <p class="sub">The contribution is the environment. M3A is a baseline — the target for others to beat.</p>
-    <div class="fig" style="margin-bottom:.7rem">
-      <img src="assets/fig1-overview.png" alt="论文 Figure 1：AndroidWorld 环境总览">
+    <div class="fig grow">
+      <div class="frame" style="--ar:2.481"><img src="assets/fig1-overview.png" alt="论文 Figure 1：AndroidWorld 环境总览"></div>
       <div class="cap">原文 Figure 1 ｜ AndroidWorld is an environment for building and testing autonomous agents.</div>
     </div>
-    <div class="cols c3">
+    <div class="cols c2" style="margin-top:.7rem;margin-bottom:0">
       <div class="col">
         <div class="rule"></div>
         <div class="label">Interface</div>
         <h3>统一的 TaskEval 接口</h3>
-        <p>goal / initialize_task / is_successful / teardown 五个方法，把差异收敛到一个契约里。</p>
+        <p>goal / initialize_task / is_successful / teardown，把差异收敛到一个契约里。</p>
       </div>
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">Scale</div>
-        <h3>116 + 92</h3>
-        <p>116 个安卓任务，外加把 MobileMiniWoB++ 的 92 个网页任务搬进同一框架。</p>
-      </div>
-      <div class="col hot">
+      <div class="col accent">
         <div class="rule"></div>
         <div class="label">Reward</div>
         <h3>奖励从真实状态回流</h3>
@@ -462,19 +478,18 @@
   <div class="stage">
     <h2 class="claim">奖励读的是设备的真实状态，不是 Agent 的动作</h2>
     <p class="sub">Reward comes from the device's final state, not from the agent's action sequence.</p>
-    <div class="flow" style="margin-bottom:.75rem">
-      <div class="st"><div class="t">① 构造起点</div><div class="d">重置设备时间、还原应用快照，得到确定的初始状态</div></div>
-      <div class="st"><div class="t">② Agent 自由操作</div><div class="d">走哪条路径不管，多条路径皆可</div></div>
-      <div class="st"><div class="t">③ 检查真实状态</div><div class="d">文件系统 / 应用数据库 / 系统设置</div></div>
-      <div class="st"><div class="t">④ 清理复原</div><div class="d">teardown 还原现场，供下一个任务使用</div></div>
+    <div class="flow" style="margin-bottom:.6rem">
+      <div class="st"><div class="t">① 构造起点</div><div class="d">重置时间、还原应用快照</div></div>
+      <div class="st"><div class="t">② Agent 操作</div><div class="d">走哪条路径不管</div></div>
+      <div class="st"><div class="t">③ 检查真实状态</div><div class="d">数据库 / 文件 / 系统设置</div></div>
+      <div class="st"><div class="t">④ 清理复原</div><div class="d">teardown 还原现场</div></div>
     </div>
-    <div class="fig">
-      <img src="assets/table2-durable-reward.png" alt="论文 Table 2：任务文本与其对应的校验逻辑">
-      <div class="cap">原文 Table 2 ｜ 每个任务配一个校验逻辑：event_exists、message_exists、file_exists、timer.displays、wifi.enabled……查的都是真实状态，而不是屏幕。</div>
+    <div class="fig grow">
+      <div class="frame" style="--ar:2.273"><img src="assets/table2-durable-reward.png" alt="论文 Table 2：任务文本与其对应的校验逻辑"></div>
+      <div class="cap">原文 Table 2 ｜ 每个任务配一个校验逻辑：event_exists、file_exists、timer.displays、wifi.enabled……查的都是真实状态，而不是屏幕。</div>
     </div>
-    <ul class="pts" style="margin-top:.7rem">
-      <li>这种机制是<b>非侵入式</b>的：不需要修改应用源码，因此能把闭源应用也纳入评测（AndroidEnv 要求改源码，所以只能匹配自己写的应用）</li>
-      <li>只有当系统状态确实不可查时，才退回看屏幕，例如秒表是否处于暂停</li>
+    <ul class="pts" style="margin-top:.6rem">
+      <li>机制是<b>非侵入式</b>的：不需要改应用源码，所以闭源应用也能纳入评测（AndroidEnv 要求改源码，只能匹配自己写的应用）</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>07</span></div>
@@ -486,23 +501,22 @@
   <div class="stage">
     <h2 class="claim">116 个任务，难度与能力分布都有据可查</h2>
     <p class="sub">Difficulty, capability and step distribution, as rated by humans.</p>
-    <div class="fig-row c3">
+    <div class="fig-row c3 grow">
       <div class="fig">
-        <img src="assets/fig2a-difficulty.png" alt="任务难度分布：easy 61、medium 36、hard 19">
-        <div class="cap">原文 Figure 2（左）｜ 按难度：easy 61 · medium 36 · hard 19</div>
+        <div class="frame" style="--ar:1.708"><img src="assets/fig2a-difficulty.png" alt="任务难度分布：easy 61、medium 36、hard 19"></div>
+        <div class="cap">原文 Figure 2（左）｜ 难度：easy 61 · medium 36 · hard 19</div>
       </div>
       <div class="fig">
-        <img src="assets/fig2c-capability.png" alt="任务能力分布：data entry、screen reading、search 等">
-        <div class="cap">原文 Figure 2（右）｜ 按能力：data entry 最多，memorization 最少</div>
+        <div class="frame" style="--ar:1.519"><img src="assets/fig2c-capability.png" alt="任务能力分布：data entry、screen reading、search 等"></div>
+        <div class="cap">原文 Figure 2（右）｜ 能力：data entry 最多，memorization 最少</div>
       </div>
       <div class="fig">
-        <img src="assets/fig2b-steps.png" alt="完成任务所需步数的分布">
+        <div class="frame" style="--ar:1.692"><img src="assets/fig2b-steps.png" alt="完成任务所需步数的分布"></div>
         <div class="cap">按步数 ｜ 多数在 10 步内，长尾延伸到 30 步以上</div>
       </div>
     </div>
-    <ul class="pts">
+    <ul class="pts" style="margin-top:.6rem">
       <li>难度与类别由<b>人工标注</b>（as rated by humans）——这印证了全篇的定位：真值仍由人定义</li>
-      <li>步数分布上，多数任务在 10 步以内完成，但长尾一直延伸到 30 步以上</li>
       <li>论文据此把每个任务的<b>最大允许步数设为人工示范步数的约两倍</b></li>
     </ul>
   </div>
@@ -534,14 +548,14 @@
         <h3>固定起点</h3>
         <p>每个任务独立维护初始化 / 判分 / 清理三段逻辑，互不污染。</p>
       </div>
-      <div class="col hot">
+      <div class="col accent">
         <div class="rule"></div>
         <div class="label">Dependency</div>
         <h3>降低外部依赖</h3>
         <p>只选无需登录鉴权的应用，数据全部落在设备本地，可随时重置。</p>
       </div>
     </div>
-    <div class="stats" style="margin-top:1.2rem">
+    <div class="stats" style="margin-top:1rem">
       <div class="stat"><div class="n">2 GB</div><div class="l">内存需求</div></div>
       <div class="stat"><div class="n">8 GB</div><div class="l">磁盘需求</div></div>
       <div class="stat"><div class="n">116</div><div class="l">安卓任务模板</div></div>
@@ -558,15 +572,14 @@
   <div class="stage">
     <h2 class="claim">人类 80%，最好的 Agent 只有 30.6%</h2>
     <p class="sub">Ample headroom — but not a floor.</p>
-    <div class="fig" style="margin-bottom:.7rem">
-      <img src="assets/table3-main-results.png" alt="论文 Table 3：各 Agent 在 AndroidWorld 与 MobileMiniWoB++ 上的成功率">
+    <div class="fig grow">
+      <div class="frame" style="--ar:2.793"><img src="assets/table3-main-results.png" alt="论文 Table 3：各 Agent 在 AndroidWorld 与 MobileMiniWoB++ 上的成功率"></div>
       <div class="cap">原文 Table 3 ｜ Success Rates (SR) on AndroidWorld and MobileMiniWoB++. 加粗为该列最优。</div>
     </div>
-    <ul class="pts">
-      <li>区分度良好：既没碰到天花板，也没沉到地板——<b>仍是一个能推动研究的区间</b></li>
+    <ul class="pts" style="margin-top:.6rem">
       <li>人类 80% 是本实验协议下的结果，<b>不代表人类能力上限</b></li>
-      <li>SeeAct 在安卓上只有 15.5%，说明<span class="hi">把桌面网页 Agent 直接搬到安卓，迁移不是免费的</span></li>
-      <li>实验设置：随机种子固定 30、温度固定 0；M3A 平均每任务约 <b>3.9 分钟</b>（纯文本版 2.5 分钟）</li>
+      <li>SeeAct 在安卓上只有 15.5%：<span class="hi">把桌面网页 Agent 直接搬到安卓，迁移不是免费的</span></li>
+      <li>实验设置：种子固定 30、温度固定 0；M3A 平均每任务约 <b>3.9 分钟</b>（纯文本版 2.5 分钟）</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>10</span></div>
@@ -578,17 +591,17 @@
   <div class="stage">
     <h2 class="claim">同一个 GPT-4，换个 Agent 外壳，分数涨了一半</h2>
     <p class="sub">Performance depends on scaffolding, not only on the base model.</p>
-    <div class="cols c2" style="margin-bottom:1rem">
+    <div class="cols c2" style="margin-bottom:.9rem">
       <div class="col">
         <div class="rule"></div>
         <div class="label">M3A-Simple · GPT-4 Turbo</div>
-        <h3 style="font-size:clamp(1.1rem,2.4vw,1.9rem);color:var(--muted)">19.8%</h3>
+        <h3 style="font-size:clamp(1rem,2.2vw,1.75rem);color:var(--muted)">19.8%</h3>
         <p>最小化提示词，没有操作指南，也没有反思机制。</p>
       </div>
-      <div class="col hot">
+      <div class="col accent">
         <div class="rule"></div>
         <div class="label">M3A · GPT-4 Turbo</div>
-        <h3 style="font-size:clamp(1.1rem,2.4vw,1.9rem);color:var(--accent)">30.6%</h3>
+        <h3 style="font-size:clamp(1rem,2.2vw,1.75rem);color:var(--accent)">30.6%</h3>
         <p>加入 ReAct / Reflexion 式提示、安卓操作指南与界面表示规范化。</p>
       </div>
     </div>
@@ -608,13 +621,13 @@
   <div class="stage">
     <h2 class="claim">换个随机种子，任务难度就变了</h2>
     <p class="sub">Task parameterization fundamentally changes task difficulty.</p>
-    <div class="fig-row split" style="margin-bottom:.6rem">
+    <div class="fig-row split grow">
       <div class="fig">
-        <img src="assets/fig3-seed-variance.png" alt="论文 Figure 3：同一任务在固定种子与不同种子下的成功率差异">
+        <div class="frame" style="--ar:2.060"><img src="assets/fig3-seed-variance.png" alt="论文 Figure 3：同一任务在固定种子与不同种子下的成功率差异"></div>
         <div class="cap">原文 Figure 3 ｜ 圆点 = 固定种子，斜纹 = 不同种子。带 * 者为差异显著（p &lt; 0.05）。</div>
       </div>
-      <div>
-        <ul class="pts" style="margin-top:.2rem">
+      <div class="side">
+        <ul class="pts">
           <li>固定种子下成功率常常近乎 <b>0</b>——论文称之为种子的「bad luck」</li>
           <li>跨三个种子，M3A 得分为 <b>27.6% / 26.3% / 33.2%</b>（均值 29.0%）</li>
           <li>统计上显著的只有 <span class="hi">AddExpense</span> 与 <span class="hi">EditNote</span>，不是全部任务</li>
@@ -622,7 +635,7 @@
         </ul>
       </div>
     </div>
-    <ul class="pts">
+    <ul class="pts" style="margin-top:.6rem">
       <li>具体案例：<b>ExpenseAddSingle</b> 中种子决定要选的分类；若该分类不在首屏，Agent 因<span class="hi">不会滚动</span>而直接失败</li>
       <li>分寸要读准：设备对比只说明<span class="hi">「保住了基本能力」</span>，不等于实现了任意设备上的泛化</li>
     </ul>
@@ -644,7 +657,7 @@
         <p>应用数 20、任务数 116，都不算大——AITW 有 3 万条数据。</p>
         <p>也不是唯一采用 state-based 评测的 benchmark，OSWorld 已在做桌面版。</p>
       </div>
-      <div class="col hot">
+      <div class="col accent">
         <div class="rule"></div>
         <div class="label">What It Is</div>
         <h3>是什么</h3>
@@ -674,11 +687,11 @@
     <div class="cols c3" style="margin-top:1rem">
       <div class="col"><div class="rule"></div><div class="label">Coupling</div><h3>应用与初始状态</h3><p>每个任务都绑定特定应用与特定的起点构造方式。</p></div>
       <div class="col"><div class="rule"></div><div class="label">Coupling</div><h3>参数生成与动作接口</h3><p>随机参数的范围、UI 与动作的映射，都需逐应用适配。</p></div>
-      <div class="col hot"><div class="rule"></div><div class="label">Coupling</div><h3>判分器</h3><p>耦合最深的一环，必须知道该应用的数据库结构。</p></div>
+      <div class="col accent"><div class="rule"></div><div class="label">Coupling</div><h3>判分器</h3><p>耦合最深的一环，必须知道该应用的数据库结构。</p></div>
     </div>
     <ul class="pts" style="margin-top:1rem">
       <li>这五者相互绑定，<b>没有任何一个能自动迁移到新应用上</b></li>
-      <li>论文对此是诚实的：它把可复现性做到了极致，代价是可移植性被冻结在已适配的 20 个应用里</li>
+      <li>论文对此是诚实的：可复现性做到了极致，代价是可移植性被冻结在已适配的 20 个应用里</li>
     </ul>
   </div>
   <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>14</span></div>
@@ -698,7 +711,7 @@
         <p>「它解决了 Android Agent 的泛化问题」</p>
         <p>任务结构和应用范围仍由人工设计，动态只是参数级的。</p>
       </div>
-      <div class="col hot">
+      <div class="col accent">
         <div class="rule"></div>
         <div class="label">Better Framing</div>
         <h3>建议这样说</h3>
@@ -717,8 +730,8 @@
 <section class="slide">
   <div class="banner"><span class="sec">Conclusion</span><span class="zh">结论</span></div>
   <div class="stage" style="justify-content:center;text-align:center">
-    <h2 class="claim" style="text-align:center;font-size:clamp(1rem,1.9vw,1.55rem)">谢谢，欢迎批评与讨论</h2>
-    <p class="sub" style="text-align:center;margin-bottom:1.8rem">Thank you.</p>
+    <h2 class="claim" style="text-align:center;font-size:clamp(.95rem,1.8vw,1.45rem)">谢谢，欢迎批评与讨论</h2>
+    <p class="sub" style="text-align:center;margin-bottom:1.5rem">Thank you.</p>
     <div class="stats">
       <div class="stat"><div class="n">116</div><div class="l">安卓任务模板<br>（91 手工 + 25 生成）</div></div>
       <div class="stat"><div class="n">92</div><div class="l">MobileMiniWoB++<br>网页任务</div></div>
