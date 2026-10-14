@@ -336,6 +336,49 @@
     .hot{display:none;}
     #hud{right:auto;left:50%;transform:translateX(-50%);}
   }
+
+  /* ═══════════════ 论文精读报告 入口 ═══════════════
+     只在封面左下角出现，指向 /gcg/ 那份 GCG 汇报。
+     z-index 要压过 .hot 的 40，否则左边缘那条翻页热区会把点击吃掉。
+     ═══════════════════════════════════════════════ */
+  .paper-entry{
+    position:absolute;z-index:45;
+    left:clamp(1rem,3.6%,46px);bottom:clamp(3.2rem,8.5%,5rem);
+    width:clamp(228px,26vw,336px);display:block;text-decoration:none;
+    background:#fff;border:1px solid var(--hair);border-left:3px solid var(--accent);
+    padding:clamp(.5rem,.95vw,.8rem) clamp(.7rem,1.3vw,1.05rem);
+    transition:box-shadow .18s,transform .18s,border-color .18s;
+  }
+  .paper-entry:hover{
+    border-color:var(--banner);
+    box-shadow:0 6px 22px rgba(32,81,124,.15);
+    transform:translateY(-2px);
+  }
+  .paper-entry .pe-cap{
+    display:block;font-size:.56rem;font-weight:700;letter-spacing:.24em;
+    text-transform:uppercase;color:var(--accent);margin-bottom:.5em;
+  }
+  .paper-entry .pe-t{
+    display:block;font-size:clamp(.74rem,1.15vw,.94rem);font-weight:700;
+    color:var(--ink);line-height:1.35;
+  }
+  .paper-entry .pe-d{
+    display:block;margin-top:.4em;font-style:italic;
+    font-size:clamp(.55rem,.85vw,.68rem);color:var(--muted);line-height:1.45;
+  }
+  .paper-entry .pe-go{
+    display:block;margin-top:.65em;font-weight:700;
+    font-size:clamp(.6rem,.9vw,.72rem);color:var(--banner);
+  }
+  .paper-entry:hover .pe-go{color:var(--accent);}
+  /* 窄屏：卡片回到正常流，跟在封面文字下面，不再浮动。
+     同时把封面那块 .stage 的 flex-grow 关掉——否则它会把整页撑满 100vh，
+     把卡片和 ICLR 2025 一起挤到屏幕外面去。 */
+  @media (max-width:720px){
+    .cover .stage{flex:0 0 auto;padding-top:2.4rem;padding-bottom:.6rem;}
+    .cover .venue{padding-bottom:.8rem;}
+    .paper-entry{position:static;width:auto;max-width:22rem;margin:1.2rem auto 1.6rem;}
+  }
 </style>
 </head>
 <body>
@@ -355,6 +398,12 @@
     </div>
   </div>
   <div class="venue">ICLR 2025</div>
+  <a class="paper-entry" href="gcg/">
+    <span class="pe-cap">Paper Reading</span>
+    <span class="pe-t">论文精读报告</span>
+    <span class="pe-d">GCG：通用且可迁移的对抗后缀攻击<br>Zou et al., 2023 · arXiv:2307.15043</span>
+    <span class="pe-go">阅读 →</span>
+  </a>
 </section>
 
 <!-- ═══════════════ 02 目录 ═══════════════ -->
