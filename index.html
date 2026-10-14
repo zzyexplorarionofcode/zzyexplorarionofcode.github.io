@@ -1,964 +1,128 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AndroidWorld · ICLR 2025 论文汇报</title>
-<meta name="description" content="ICLR 2025 论文 AndroidWorld 的文献汇报：动态评测环境、结果导向奖励与辩证评价。">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%2320517C'/></svg>">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#e9e7e1">
+<title>论文精读报告</title>
 <style>
   /* ═══════════════ 设计变量 ═══════════════
-     配色与版式按参考 PPT 实测取得：
-       横幅 #20517C · 强调 #FF6B35 · 正文 #222222
-       副文 #555555 · 浅卡 #EDEDED · 深卡 #000000
-     全篇衬线字体，与参考稿保持一致。
+     米白纸面 + 深墨正文 + 学术蓝强调，偏向论文的阅读感。
      ═══════════════════════════════════════ */
   :root{
-    --banner:  #20517C;
-    --bg:      #FFFFFF;
-    --ink:     #000000;
-    --body:    #222222;
-    --muted:   #555555;
-    --accent:  #FF6B35;
-    --card-lt: #EDEDED;
-    --card-dk: #000000;
-    --hair:    #B8BCC4;
-    --serif:   Georgia, "Times New Roman", "Songti SC", "SimSun", "STSong", serif;
-    --fig-h:   clamp(240px, 48vh, 420px); /* 单图基准高度：图整体变小、不再撑满整屏 */
+    --paper:      #fbfaf7;
+    --paper-deep: #e9e7e1;
+    --card:       #ffffff;
+    --ink:        #22222a;
+    --muted:      #62626d;
+    --line:       #dedbd3;
+    --accent:     #1f55d5;
+    --accent-2:   #c2521e;
+    --radius:     10px;
+    --font-zh:  "PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+                "Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+    --font-mono:"SF Mono","Menlo","Consolas","Courier New",monospace;
   }
 
   *{margin:0;padding:0;box-sizing:border-box;}
 
-  html,body{
-    height:100%;
-    background:#E9EAEC;
-    color:var(--body);
-    font-family:var(--serif);
+  body{
+    background:var(--paper-deep);
+    color:var(--ink);
+    font-family:var(--font-zh);
     -webkit-font-smoothing:antialiased;
+  }
+
+  .home{max-width:1080px;margin:0 auto;padding:88px 32px 96px;}
+
+  .home-kicker{
+    color:var(--accent);letter-spacing:.35em;
+    font-size:13px;font-weight:600;margin-bottom:18px;
+  }
+  .home h1{font-size:46px;font-weight:800;color:var(--ink);
+    margin:0 0 12px;letter-spacing:.01em;}
+  .home .sub{color:var(--muted);font-size:16px;margin-bottom:56px;line-height:1.9;}
+  .home .sub kbd{
+    font-family:var(--font-mono);font-size:12px;background:var(--card);
+    border:1px solid var(--line);border-radius:5px;padding:1px 7px;color:var(--ink);
+  }
+
+  /* ── 卡片网格：自动按容器宽度决定列数，最窄 290px ── */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:26px;}
+
+  .card{
+    display:block;text-decoration:none;color:var(--ink);
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
     overflow:hidden;
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
   }
+  .card:hover{
+    transform:translateY(-4px);border-color:var(--accent);
+    box-shadow:0 10px 28px rgba(34,34,42,.10);
+  }
+  .card .thumb{
+    height:180px;display:flex;align-items:center;justify-content:center;
+    background:var(--paper);border-bottom:1px solid var(--line);
+  }
+  .card .thumb img{max-width:90%;max-height:158px;object-fit:contain;}
 
-  #deck{position:fixed;inset:0;}
-
-  .slide{
-    position:absolute;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    background:var(--bg);
-    overflow:hidden;
-    opacity:0;
-    transition:opacity .3s ease;
+  .card .meta{padding:20px 24px 24px;}
+  .card .no{
+    font-family:var(--font-mono);font-size:12px;
+    color:var(--accent);letter-spacing:.2em;
   }
-  .slide.active{display:flex;opacity:1;}
-
-  /* ── 顶部蓝色横幅 ── */
-  .banner{
-    flex:0 0 auto;
-    background:var(--banner);
-    height:clamp(44px,12%,96px);
-    display:flex;align-items:center;
-    padding:0 clamp(1rem,3.6%,46px);
-    gap:clamp(.5rem,1.4vw,1.1rem);
-    color:#fff;
-  }
-  .banner .num{font-size:clamp(1.3rem,3.6vw,2.8rem);font-weight:700;line-height:1;}
-  .banner .slash{
-    width:2px;height:clamp(1.2rem,3vw,2.3rem);
-    background:#fff;transform:rotate(18deg);opacity:.85;flex:0 0 auto;
-  }
-  .banner .sec{
-    font-size:clamp(.85rem,2.6vw,2rem);
-    font-weight:400;line-height:1.1;text-transform:uppercase;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  }
-  .banner .zh{
-    font-size:clamp(.55rem,.95vw,.78rem);
-    color:#B9CEDF;letter-spacing:.2em;margin-left:.4rem;white-space:nowrap;
-  }
-
-  /* ═══════════════ 布局基调 ═══════════════
-     关键约定：.stage 的直接子元素一律 flex:0 0 auto（不许被压缩），
-     只有标了 .grow 的图区才吸收剩余空间。
-     之前把 .cols 也设成 min-height:0，导致 flex 把它压成 0 高、
-     内部网格行溢出后互相叠在一起——这条约定就是为了根治那个问题。
-     ═══════════════════════════════════════ */
-  .stage{
-    flex:1 1 auto;
-    min-height:0;
-    display:flex;flex-direction:column;
-    justify-content:center; /* 内容垂直居中：纯文字页不再「上满下空」 */
-    padding:clamp(.7rem,2.2%,1.7rem) clamp(1rem,3.6%,46px) 0;
-    overflow:hidden;
-  }
-  .stage > *{flex:0 0 auto;}
-
-  .claim{
-    font-size:clamp(1.15rem,2.6vw,2rem);
-    font-weight:700;color:var(--ink);line-height:1.26;
-    margin-bottom:clamp(.25rem,.8%,.55rem);
-  }
-  .sub{
-    font-size:clamp(.78rem,1.4vw,1.08rem);
-    color:var(--muted);line-height:1.45;font-style:italic;
-    margin-bottom:clamp(.5rem,1.6%,1.1rem);
-  }
-  .sub.plain{font-style:normal;}
-
-  /* ── 多列 ── */
-  .cols{
-    display:grid;grid-template-columns:repeat(var(--n,3),1fr);
-    gap:clamp(.7rem,2.6%,2rem);
-    margin-bottom:clamp(.4rem,1.3%,.9rem);
-  }
-  .cols.c2{--n:2;} .cols.c3{--n:3;} .cols.c4{--n:4;}
-
-  .col{min-width:0;}
-  .col .rule{height:2px;background:var(--ink);margin-bottom:clamp(.35rem,1%,.7rem);}
-  .col.accent .rule{background:var(--accent);}
-
-  .label{
-    font-size:clamp(.6rem,1.05vw,.82rem);
-    letter-spacing:.13em;text-transform:uppercase;
-    color:var(--muted);font-weight:700;
-    margin-bottom:clamp(.24rem,.8%,.5rem);
-  }
-  .col.accent .label{color:var(--accent);}
-
-  .col h3{
-    font-size:clamp(.9rem,1.7vw,1.3rem);
-    font-weight:700;color:var(--ink);line-height:1.28;
-    margin-bottom:clamp(.24rem,.8%,.5rem);
-  }
-  .col p{
-    font-size:clamp(.76rem,1.35vw,1.02rem);
-    line-height:1.55;color:var(--body);
-  }
-  .col p + p{margin-top:.42em;}
-
-  /* ── 黑白对比卡 ── */
-  .vs{display:flex;align-items:stretch;gap:clamp(.4rem,1.2%,1rem);margin:clamp(.3rem,1%,.7rem) 0;}
-  .vs .box{
-    flex:1 1 0;display:flex;align-items:center;justify-content:center;text-align:center;
-    padding:clamp(.45rem,1.2%,.85rem);
-    font-size:clamp(.8rem,1.5vw,1.12rem);font-weight:700;line-height:1.3;
-  }
-  .vs .box.lt{background:var(--card-lt);color:var(--ink);}
-  .vs .box.dk{background:var(--card-dk);color:#fff;}
-  .vs .arrow{
-    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;gap:.25em;min-width:clamp(2rem,7%,4rem);
-  }
-  .vs .arrow .ln{width:100%;height:2px;background:var(--accent);}
-  .vs .arrow .tx{
-    font-size:clamp(.58rem,.95vw,.72rem);color:var(--accent);
-    font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.15;
-  }
-
-  /* ── 黑色强调框 ── */
-  .callout{
-    background:var(--card-dk);color:#fff;
-    padding:clamp(.5rem,1.4%,.9rem) clamp(.8rem,2.2%,1.4rem);
-    font-size:clamp(.9rem,1.6vw,1.22rem);
-    font-weight:700;line-height:1.38;text-align:center;
-  }
-  .callout small{
-    display:block;margin-top:.4em;font-size:.74em;font-weight:400;
-    color:#C9C9C9;font-style:italic;
-  }
-
-  /* ═══════════════ 图区 ═══════════════
-     .fig 是竖排的「图框 + 图注」；.frame 负责按可用高度自适应缩放。
-     图片用 max-width/max-height 双向约束，永不溢出、永不变形。
-     ═══════════════════════════════════════ */
-  .fig{display:flex;flex-direction:column;min-height:0;}
-  .fig .frame{
-    border:1.5px dashed var(--hair);
-    padding:clamp(.25rem,.7%,.5rem);
-    background:#fff;overflow:hidden;
-    box-sizing:border-box;
-  }
-  .fig .frame img{
-    display:block;
-    width:100%;height:100%;
-    object-fit:contain;
-  }
-  .fig .cap{
-    flex:0 0 auto;
-    font-size:clamp(.48rem,.82vw,.65rem);
-    color:var(--muted);font-style:italic;line-height:1.35;
-    margin-top:clamp(.2rem,.6%,.35rem);
-  }
-  /* 通栏单图：靠左、定高，宽度 = 高 × 比例，不再撑满剩余空间 */
-  .fig.grow{flex:0 0 auto;min-height:0;}
-  .fig.grow .frame{
-    flex:0 0 auto;
-    align-self:flex-start;  /* 图统一靠左 */
-    width:min(100%, calc(var(--fig-h) * var(--ar,2)));
-    aspect-ratio:var(--ar,2);
-  }
-
-  .fig-row{
-    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;
-    gap:clamp(.5rem,1.6%,1.2rem);
-  }
-  .fig-row.c3{grid-template-columns:repeat(3,1fr);}
-  .fig-row.split{grid-template-columns:1.05fr .95fr;}
-  .fig-row > .fig{
-    min-height:0;
-    display:flex;flex-direction:column;justify-content:center;
-  }
-  .fig-row .fig .frame{
-    width:100%;
-    aspect-ratio:var(--ar,2);
-    max-height:100%;
-  }
-  .fig-row.grow{flex:0 0 auto;min-height:0;}
-  /* 左右分栏里的文字栏：自身可滚动，避免把图挤扁 */
-  .fig-row.split > .side{min-height:0;overflow:hidden;}
-
-  /* ── 流程条 ── */
-  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.35rem,1.1%,.75rem);}
-  .flow .st{border:1.5px dashed var(--hair);padding:clamp(.32rem,.9%,.6rem);}
-  .flow .st .t{font-size:clamp(.68rem,1.2vw,.95rem);font-weight:700;color:var(--banner);margin-bottom:.25em;}
-  .flow .st .d{font-size:clamp(.6rem,1.05vw,.8rem);color:var(--muted);line-height:1.45;}
-
-  /* ── 大数字 ── */
-  .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(.8rem,4%,3rem);}
-  .stat{text-align:center;}
-  .stat .n{
-    font-size:clamp(1.3rem,3vw,2.4rem);
-    font-weight:700;color:var(--banner);line-height:1.1;
-    font-variant-numeric:tabular-nums;
-  }
-  .stat .l{font-size:clamp(.62rem,1.1vw,.88rem);color:var(--muted);margin-top:.3em;line-height:1.4;}
-
-  /* ── 列表 ── */
-  ul.pts{list-style:none;}
-  ul.pts li{
-    position:relative;padding-left:1.1em;
-    margin-bottom:clamp(.2rem,.7%,.4rem);
-    font-size:clamp(.76rem,1.35vw,1.02rem);
-    line-height:1.5;color:var(--body);
-  }
-  ul.pts li:last-child{margin-bottom:0;}
-  ul.pts li::before{content:"—";position:absolute;left:0;color:var(--hair);}
-  b,strong{color:var(--ink);font-weight:700;}
-  .hi{color:var(--accent);font-weight:700;}
-  .tl{color:var(--banner);font-weight:700;}
+  .card .name{font-size:20px;font-weight:700;margin:10px 0 8px;line-height:1.35;}
+  .card .cnt{font-size:13px;color:var(--muted);line-height:1.6;}
 
   /* ── 页脚 ── */
   .foot{
-    flex:0 0 auto;
-    display:flex;align-items:center;justify-content:space-between;
-    border-top:1px solid var(--hair);
-    margin:0 clamp(1rem,3.6%,46px);
-    padding:clamp(.28rem,.75%,.45rem) 0 clamp(.42rem,1.1%,.7rem);
-    font-size:clamp(.46rem,.78vw,.62rem);
-    color:var(--muted);
+    max-width:1080px;margin:0 auto;padding:0 32px 72px;
+    font-size:12px;color:var(--muted);
+    font-family:var(--font-mono);letter-spacing:.05em;
   }
 
-  /* ── 封面 ── */
-  .cover .stage{justify-content:center;align-items:center;text-align:center;padding-bottom:1.5rem;}
-  .cover h1{
-    font-size:clamp(1rem,2.8vw,2.2rem);
-    font-weight:700;color:var(--ink);line-height:1.22;
-    max-width:22ch;margin:0 auto clamp(.5rem,1.8%,1.2rem);
-  }
-  .cover .zh-title{
-    font-size:clamp(.82rem,1.9vw,1.4rem);
-    color:var(--banner);font-weight:700;
-    margin-bottom:clamp(.9rem,3.5%,2.2rem);line-height:1.35;
-  }
-  .cover .meta{font-size:clamp(.62rem,1.1vw,.86rem);color:var(--muted);line-height:1.8;}
-  .cover .venue{
-    flex:0 0 auto;text-align:center;
-    padding-bottom:clamp(1rem,4%,2.4rem);
-    font-size:clamp(.85rem,1.9vw,1.45rem);
-    font-weight:700;color:var(--banner);
-  }
-
-  /* ── 目录 ── */
-  .toc{display:grid;gap:clamp(.15rem,.7%,.45rem);}
-  .toc .it{
-    display:grid;grid-template-columns:clamp(1.4rem,3vw,2.4rem) 1fr;
-    align-items:baseline;gap:clamp(.5rem,1.5%,1rem);
-    padding:clamp(.26rem,.85%,.55rem) 0;
-    border-bottom:1px solid #E8E9EB;
-  }
-  .toc .n{font-size:clamp(.9rem,1.9vw,1.5rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
-  .toc .t{font-size:clamp(.85rem,1.55vw,1.2rem);font-weight:700;color:var(--ink);}
-  .toc .d{font-size:clamp(.65rem,1.1vw,.85rem);color:var(--muted);margin-top:.12em;}
-
-  /* ── 控制条 ── */
-  #prog{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:60;transition:width .3s ease;}
-  #hud{
-    position:fixed;right:clamp(.6rem,2%,1.5rem);bottom:clamp(.4rem,1.4%,.95rem);
-    display:flex;align-items:center;gap:.7rem;z-index:50;
-  }
-  #dots{display:flex;gap:5px;}
-  #dots button{
-    width:7px;height:7px;border-radius:50%;border:none;
-    background:#C7CBD1;cursor:pointer;padding:0;
-    transition:background .2s,transform .2s;
-  }
-  #dots button:hover{background:var(--muted);transform:scale(1.3);}
-  #dots button.on{background:var(--banner);transform:scale(1.3);}
-  #counter{font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums;}
-  .hot{position:fixed;top:0;bottom:0;width:9%;z-index:40;cursor:pointer;}
-  .hot.l{left:0;} .hot.r{right:0;}
-
-  /* ═══════════════ 响应式 ═══════════════ */
-  @media (max-width:1000px){
-    .cols.c3,.cols.c4{--n:2;}
-    .flow{grid-template-columns:repeat(2,1fr);}
-    .fig-row.c3{grid-template-columns:1fr 1fr;}
-  }
-  /* 矮屏：优先削横幅与留白，把高度让给图 */
-  @media (max-height:700px){
-    .banner{height:clamp(40px,10%,72px);}
-    .stage{padding-top:.55rem;}
-    .claim{margin-bottom:.2rem;}
-    .sub{margin-bottom:.5rem;}
-  }
-  /* 窄屏：整页改为可滚动的长文档，图区不再吸收高度 */
+  /* ── 窄屏 ── */
   @media (max-width:720px){
-    html,body{overflow:auto;}
-    .slide{position:relative;inset:auto;min-height:100vh;overflow:visible;}
-    .slide.active{display:flex;}
-    .stage{overflow:visible;padding-bottom:1rem;justify-content:flex-start;}
-    .stage > *,.fig.grow,.fig-row.grow{flex:0 0 auto;}
-    .cols.c2,.cols.c3,.cols.c4{--n:1;}
-    .flow,.fig-row,.fig-row.c3,.fig-row.split{grid-template-columns:1fr;grid-template-rows:none;}
-    .fig .frame{max-height:none;}
-    .vs{flex-direction:column;}
-    .vs .arrow .ln{width:55%;}
-    .hot{display:none;}
-    #hud{right:auto;left:50%;transform:translateX(-50%);}
-  }
-
-  /* ═══════════════ 论文精读报告 入口 ═══════════════
-     只在封面左下角出现，指向 /gcg/ 那份 GCG 汇报。
-     z-index 要压过 .hot 的 40，否则左边缘那条翻页热区会把点击吃掉。
-     ═══════════════════════════════════════════════ */
-  .paper-entry{
-    position:absolute;z-index:45;
-    left:clamp(1rem,3.6%,46px);bottom:clamp(3.2rem,8.5%,5rem);
-    width:clamp(228px,26vw,336px);display:block;text-decoration:none;
-    background:#fff;border:1px solid var(--hair);border-left:3px solid var(--accent);
-    padding:clamp(.5rem,.95vw,.8rem) clamp(.7rem,1.3vw,1.05rem);
-    transition:box-shadow .18s,transform .18s,border-color .18s;
-  }
-  .paper-entry:hover{
-    border-color:var(--banner);
-    box-shadow:0 6px 22px rgba(32,81,124,.15);
-    transform:translateY(-2px);
-  }
-  .paper-entry .pe-cap{
-    display:block;font-size:.56rem;font-weight:700;letter-spacing:.24em;
-    text-transform:uppercase;color:var(--accent);margin-bottom:.5em;
-  }
-  .paper-entry .pe-t{
-    display:block;font-size:clamp(.74rem,1.15vw,.94rem);font-weight:700;
-    color:var(--ink);line-height:1.35;
-  }
-  .paper-entry .pe-d{
-    display:block;margin-top:.4em;font-style:italic;
-    font-size:clamp(.55rem,.85vw,.68rem);color:var(--muted);line-height:1.45;
-  }
-  .paper-entry .pe-go{
-    display:block;margin-top:.65em;font-weight:700;
-    font-size:clamp(.6rem,.9vw,.72rem);color:var(--banner);
-  }
-  .paper-entry:hover .pe-go{color:var(--accent);}
-  /* 窄屏：卡片回到正常流，跟在封面文字下面，不再浮动。
-     同时把封面那块 .stage 的 flex-grow 关掉——否则它会把整页撑满 100vh，
-     把卡片和 ICLR 2025 一起挤到屏幕外面去。 */
-  @media (max-width:720px){
-    .cover .stage{flex:0 0 auto;padding-top:2.4rem;padding-bottom:.6rem;}
-    .cover .venue{padding-bottom:.8rem;}
-    .paper-entry{position:static;width:auto;max-width:22rem;margin:1.2rem auto 1.6rem;}
+    .home{padding:56px 20px 64px;}
+    .home h1{font-size:32px;}
+    .home .sub{font-size:14px;margin-bottom:36px;}
+    .cards{gap:18px;}
+    .foot{padding:0 20px 48px;}
   }
 </style>
 </head>
 <body>
 
-<div id="prog"></div>
-<div id="deck">
-
-<!-- ═══════════════ 01 封面 ═══════════════ -->
-<section class="slide cover active">
-  <div class="banner"><span class="slash"></span></div>
-  <div class="stage">
-    <h1>AndroidWorld: A Dynamic Benchmarking Environment for Autonomous Agents</h1>
-    <div class="zh-title">面向自主智能体的动态评测环境</div>
-    <div class="meta">
-      Google DeepMind · Google &nbsp;|&nbsp; ICLR 2025<br>
-      文献汇报
-    </div>
+<div class="home">
+  <div class="home-kicker">PAPER READING</div>
+  <h1>论文精读报告</h1>
+  <div class="sub">
+    两份论文的中文汇报，网页版幻灯片。键盘 <kbd>←</kbd><kbd>→</kbd> 翻页 ·
+    <kbd>O</kbd> 总览 · <kbd>N</kbd> 讲稿 · <kbd>F</kbd> 全屏
   </div>
-  <div class="venue">ICLR 2025</div>
-  <a class="paper-entry" href="gcg/">
-    <span class="pe-cap">Paper Reading</span>
-    <span class="pe-t">论文精读报告</span>
-    <span class="pe-d">GCG：通用且可迁移的对抗后缀攻击<br>Zou et al., 2023 · arXiv:2307.15043</span>
-    <span class="pe-go">阅读 →</span>
-  </a>
-</section>
 
-<!-- ═══════════════ 02 目录 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="sec">Contents</span><span class="zh">汇报结构</span></div>
-  <div class="stage">
-    <h2 class="claim">四个部分，一个问题</h2>
-    <p class="sub">How should we evaluate an agent that operates a real phone?</p>
-    <div class="toc">
-      <div class="it"><div class="n">1</div><div><div class="t">背景与问题</div><div class="d">静态轨迹评测为什么失效 · 原文 Table 1</div></div></div>
-      <div class="it"><div class="n">2</div><div><div class="t">核心贡献与机制</div><div class="d">环境总览 · 参数化实例 · 结果导向奖励 · 任务构成</div></div></div>
-      <div class="it"><div class="n">3</div><div><div class="t">实验与结果</div><div class="d">主结果 · Agent 外壳的作用 · 鲁棒性分析</div></div></div>
-      <div class="it"><div class="n">4</div><div><div class="t">辩证评价</div><div class="d">贡献边界 · 可扩展性 vs 可移植性 · 继承与最新进展</div></div></div>
-    </div>
+  <div class="cards">
+    <a class="card" href="gcg/">
+      <div class="thumb"><img src="gcg/assets/fig1.png" alt=""></div>
+      <div class="meta">
+        <div class="no">PAPER 01</div>
+        <div class="name">GCG：通用且可迁移的对抗后缀攻击</div>
+        <div class="cnt">23 页 · 攻击方法 / 迁移性 / 消融与讨论<br>Zou et al., 2023 · arXiv:2307.15043</div>
+      </div>
+    </a>
+
+    <a class="card" href="androidworld/">
+      <div class="thumb"><img src="androidworld/assets/fig1-overview.png" alt=""></div>
+      <div class="meta">
+        <div class="no">PAPER 02</div>
+        <div class="name">AndroidWorld：面向自主智能体的动态评测环境</div>
+        <div class="cnt">18 页 · 背景与问题 / 环境机制 / 实验结果<br>Google DeepMind · ICLR 2025</div>
+      </div>
+    </a>
   </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>02</span></div>
-</section>
-
-<!-- ═══════════════ 03 背景 1 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">Research Background</span><span class="zh">背景与问题</span></div>
-  <div class="stage">
-    <h2 class="claim">旧的评测问的是「你有没有走对那串步骤」</h2>
-    <p class="sub">Old benchmarks asked whether the agent followed the right sequence of actions — not whether the task got done.</p>
-    <div class="cols c3">
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">Prior Practice</div>
-        <h3>比对动作序列</h3>
-        <p>AITW、AndroidControl 等数据集把 Agent 的每一步动作与人类示范逐步比对。</p>
-      </div>
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">Why It Breaks</div>
-        <h3>在线环境不听话</h3>
-        <p>真实环境里可以走多条不同路径，环境本身非确定，Agent 还会从错误中自我纠正。</p>
-      </div>
-      <div class="col accent">
-        <div class="rule"></div>
-        <div class="label">Missing Signal</div>
-        <h3>「像不像」≠「成没成」</h3>
-        <p>论文主张：只有直接对<b>最终状态</b>给奖励，才是评测的金标准。</p>
-      </div>
-    </div>
-    <div class="callout">
-      如果只看动作像不像标准答案，我们究竟在评测 Agent，还是在评测它像不像人类？
-    </div>
-    <ul class="pts" style="margin-top:1rem">
-      <li>静态数据集的样本固定，Agent 可以「背答案」；在线环境每次都不同，逼 Agent 学「操作」而非「复述」——评测的路子在这里拐了个弯</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>03</span></div>
-</section>
-
-<!-- ═══════════════ 04 背景 2 · 原文 Table 1 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">Research Background</span><span class="zh">背景与问题</span></div>
-  <div class="stage">
-    <h2 class="claim">论文表格里，有两列一眼定生死</h2>
-    <p class="sub">Env? and Avg&nbsp;#&nbsp;task&nbsp;instances — the two columns that separate datasets from environments.</p>
-    <div class="fig grow">
-      <div class="frame" style="--ar:1.484"><img src="assets/table1-comparison.png" alt="论文 Table 1：各类智能体评测数据集与环境的对比"></div>
-      <div class="cap">原文 Table 1 ｜ Comparison of different datasets and environments for benchmarking computer agents.</div>
-    </div>
-    <ul class="pts" style="margin-top:.6rem">
-      <li><b>Env? 打 ✗ 的一整组</b>是静态数据集：样本固定，只比动作序列</li>
-      <li><b>Avg # task instances = 1</b> 意味着参数一改，奖励就可能失效</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>04</span></div>
-</section>
-
-<!-- ═══════════════ 05 核心贡献 · 原文 Figure 1 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">Core Contribution</span><span class="zh">核心贡献</span></div>
-  <div class="stage">
-    <h2 class="claim">它的贡献是「评测环境」，不是「更强的 Agent」</h2>
-    <p class="sub">The contribution is the environment. M3A is a baseline — the target for others to beat.</p>
-    <div class="fig grow">
-      <div class="frame" style="--ar:2.481"><img src="assets/fig1-overview.png" alt="论文 Figure 1：AndroidWorld 环境总览"></div>
-      <div class="cap">原文 Figure 1 ｜ AndroidWorld is an environment for building and testing autonomous agents.</div>
-    </div>
-    <div class="cols c2" style="margin-top:.7rem;margin-bottom:0">
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">Interface</div>
-        <h3>统一的 TaskEval 接口</h3>
-        <p>goal / initialize_task / is_successful / teardown，把差异收敛到一个契约里。</p>
-      </div>
-      <div class="col accent">
-        <div class="rule"></div>
-        <div class="label">Reward</div>
-        <h3>奖励从真实状态回流</h3>
-        <p>图中 <b>reward</b> 箭头从模拟器的 OS State 指向 TaskEval——这就是全篇的机制核心。</p>
-      </div>
-    </div>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>05</span></div>
-</section>
-
-<!-- ═══════════════ 06 机制 1 · Dynamic ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">Mechanism 1 / 3</span><span class="zh">动态实例化</span></div>
-  <div class="stage">
-    <h2 class="claim">Dynamic 发生在参数层，不在任务结构层</h2>
-    <p class="sub">Dynamic at the parameter level — not at the task-structure level.</p>
-    <div class="vs">
-      <div class="box lt">变的是<br>标题 · 时间 · 地点 · 金额 · 分类 · 文件名 · 干扰项数量</div>
-      <div class="arrow"><div class="ln"></div><div class="tx">not</div></div>
-      <div class="box dk">不变的是<br>任务本体仍由 116 个模板决定，结构、意图、判分逻辑全部人工设计</div>
-    </div>
-    <ul class="pts">
-      <li>所以「百万级任务实例」<span class="hi">不等于</span>「百万种任务类型」——这是最容易被误读的一点</li>
-      <li>代码里手工任务是 <b>91 个</b>，另 <b>25 个</b>由配置文件动态生成，合计 116</li>
-      <li>准确表述应是<b>「固定模板 + 随机参数实例化」</b>，而不是「每次都面对未知的任务结构」</li>
-      <li>论文自己也承认：参数化的难点在于<b>判分逻辑必须在所有实例上依然成立</b></li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>06</span></div>
-</section>
-
-<!-- ═══════════════ 07 机制 2 · Durable Reward + 原文 Table 2 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">Mechanism 2 / 3</span><span class="zh">结果导向奖励</span></div>
-  <div class="stage">
-    <h2 class="claim">奖励读的是设备的真实状态，不是 Agent 的动作</h2>
-    <p class="sub">Reward comes from the device's final state, not from the agent's action sequence.</p>
-    <div class="flow" style="margin-bottom:.6rem">
-      <div class="st"><div class="t">① 构造起点</div><div class="d">重置时间、还原应用快照</div></div>
-      <div class="st"><div class="t">② Agent 操作</div><div class="d">走哪条路径不管</div></div>
-      <div class="st"><div class="t">③ 检查真实状态</div><div class="d">数据库 / 文件 / 系统设置</div></div>
-      <div class="st"><div class="t">④ 清理复原</div><div class="d">teardown 还原现场</div></div>
-    </div>
-    <div class="fig grow">
-      <div class="frame" style="--ar:2.273"><img src="assets/table2-durable-reward.png" alt="论文 Table 2：任务文本与其对应的校验逻辑"></div>
-      <div class="cap">原文 Table 2 ｜ 每个任务配一个校验逻辑：event_exists、file_exists、timer.displays、wifi.enabled……查的都是真实状态，而不是屏幕。</div>
-    </div>
-    <ul class="pts" style="margin-top:.6rem">
-      <li>机制是<b>非侵入式</b>的：不需要改应用源码，所以闭源应用也能纳入评测（AndroidEnv 要求改源码，只能匹配自己写的应用）</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>07</span></div>
-</section>
-
-<!-- ═══════════════ 08 任务构成 · 原文 Figure 2 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">Task Composition</span><span class="zh">任务构成</span></div>
-  <div class="stage">
-    <h2 class="claim">116 个任务，难度与能力分布都有据可查</h2>
-    <p class="sub">Difficulty, capability and step distribution, as rated by humans.</p>
-    <div class="fig-row c3 grow">
-      <div class="fig">
-        <div class="frame" style="--ar:1.708"><img src="assets/fig2a-difficulty.png" alt="任务难度分布：easy 61、medium 36、hard 19"></div>
-        <div class="cap">原文 Figure 2（左）｜ 难度：easy 61 · medium 36 · hard 19</div>
-      </div>
-      <div class="fig">
-        <div class="frame" style="--ar:1.519"><img src="assets/fig2c-capability.png" alt="任务能力分布：data entry、screen reading、search 等"></div>
-        <div class="cap">原文 Figure 2（右）｜ 能力：data entry 最多，memorization 最少</div>
-      </div>
-      <div class="fig">
-        <div class="frame" style="--ar:1.692"><img src="assets/fig2b-steps.png" alt="完成任务所需步数的分布"></div>
-        <div class="cap">按步数 ｜ 多数在 10 步内，长尾延伸到 30 步以上</div>
-      </div>
-    </div>
-    <ul class="pts" style="margin-top:.6rem">
-      <li>难度与类别由<b>人工标注</b>（as rated by humans）——这印证了全篇的定位：真值仍由人定义</li>
-      <li>论文据此把每个任务的<b>最大允许步数设为人工示范步数的约两倍</b></li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>08</span></div>
-</section>
-
-<!-- ═══════════════ 09 机制 3 · 可复现 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">Mechanism 3 / 3</span><span class="zh">可复现性</span></div>
-  <div class="stage">
-    <h2 class="claim">把「真实环境」压成「可复现环境」</h2>
-    <p class="sub">Making a real environment reproducible.</p>
-    <div class="cols c4">
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">System</div>
-        <h3>固定系统</h3>
-        <p>Pixel 6 模拟器 · Android 13；开源应用锁定 F-Droid 固定版本。</p>
-      </div>
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">Time</div>
-        <h3>固定时间</h3>
-        <p>设备时间锁死 2023-10-15 15:34 UTC，消除时间相关行为的不确定性。</p>
-      </div>
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">State</div>
-        <h3>固定起点</h3>
-        <p>每个任务独立维护初始化 / 判分 / 清理三段逻辑，互不污染。</p>
-      </div>
-      <div class="col accent">
-        <div class="rule"></div>
-        <div class="label">Dependency</div>
-        <h3>降低外部依赖</h3>
-        <p>只选无需登录鉴权的应用，数据全部落在设备本地，可随时重置。</p>
-      </div>
-    </div>
-    <div class="stats" style="margin-top:1rem">
-      <div class="stat"><div class="n">2 GB</div><div class="l">内存需求</div></div>
-      <div class="stat"><div class="n">8 GB</div><div class="l">磁盘需求</div></div>
-      <div class="stat"><div class="n">116</div><div class="l">安卓任务模板</div></div>
-      <div class="stat"><div class="n">92</div><div class="l">MiniWoB++ 任务</div></div>
-      <div class="stat"><div class="n">20</div><div class="l">真实应用</div></div>
-    </div>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>09</span></div>
-</section>
-
-<!-- ═══════════════ 10 实验 1 · 主结果 + 原文 Table 3 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">Evaluation</span><span class="zh">主结果</span></div>
-  <div class="stage">
-    <h2 class="claim">人类 80%，最好的 Agent 只有 30.6%</h2>
-    <p class="sub">Ample headroom — but not a floor.</p>
-    <div class="fig grow">
-      <div class="frame" style="--ar:2.793"><img src="assets/table3-main-results.png" alt="论文 Table 3：各 Agent 在 AndroidWorld 与 MobileMiniWoB++ 上的成功率"></div>
-      <div class="cap">原文 Table 3 ｜ Success Rates (SR) on AndroidWorld and MobileMiniWoB++. 加粗为该列最优。</div>
-    </div>
-    <ul class="pts" style="margin-top:.6rem">
-      <li>人类 80% 是本实验协议下的结果，<b>不代表人类能力上限</b></li>
-      <li>SeeAct 在安卓上只有 15.5%：<span class="hi">把桌面网页 Agent 直接搬到安卓，迁移不是免费的</span></li>
-      <li>实验设置：种子固定 30、温度固定 0；M3A 平均每任务约 <b>3.9 分钟</b>（纯文本版 2.5 分钟）</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>10</span></div>
-</section>
-
-<!-- ═══════════════ 11 实验 2 · scaffolding ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">Evaluation</span><span class="zh">Agent 外壳的作用</span></div>
-  <div class="stage">
-    <h2 class="claim">同一个 GPT-4，换个 Agent 外壳，分数涨了一半</h2>
-    <p class="sub">Performance depends on scaffolding, not only on the base model.</p>
-    <div class="cols c2" style="margin-bottom:.9rem">
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">M3A-Simple · GPT-4 Turbo</div>
-        <h3 style="font-size:clamp(1rem,2.2vw,1.75rem);color:var(--muted)">19.8%</h3>
-        <p>最小化提示词，没有操作指南，也没有反思机制。</p>
-      </div>
-      <div class="col accent">
-        <div class="rule"></div>
-        <div class="label">M3A · GPT-4 Turbo</div>
-        <h3 style="font-size:clamp(1rem,2.2vw,1.75rem);color:var(--accent)">30.6%</h3>
-        <p>加入 ReAct / Reflexion 式提示、安卓操作指南与界面表示规范化。</p>
-      </div>
-    </div>
-    <ul class="pts">
-      <li>同一个模型，只把提示词从「最简」补到「操作指南＋反思机制＋规范化界面」，就 <span class="hi">19.8% → 30.6%</span>——涨的分跟模型无关，全在外壳上</li>
-      <li><b>侧面证据</b>：连「界面表示」这一项也随环境翻转——SoM 视觉输入在安卓降到 25.4%，在网页却冲到 67.7%（网页无障碍树常残缺，视觉标注才不可替代）</li>
-      <li>这提醒我们：Agent 的得分里混着「模型能力」和「外壳设计」两块，不拆开，涨分就算不清到底算谁的</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>11</span></div>
-</section>
-
-<!-- ═══════════════ 12 实验 3 · 鲁棒性 + 原文 Figure 3 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">Evaluation</span><span class="zh">鲁棒性分析</span></div>
-  <div class="stage">
-    <h2 class="claim">换个随机种子，任务难度就变了</h2>
-    <p class="sub">Task parameterization fundamentally changes task difficulty.</p>
-    <div class="fig-row split grow">
-      <div class="fig">
-        <div class="frame" style="--ar:2.060"><img src="assets/fig3-seed-variance.png" alt="论文 Figure 3：同一任务在固定种子与不同种子下的成功率差异"></div>
-        <div class="cap">原文 Figure 3 ｜ 圆点 = 固定种子，斜纹 = 不同种子。带 * 者为差异显著（p &lt; 0.05）。</div>
-      </div>
-      <div class="side">
-        <ul class="pts">
-          <li>固定种子下成功率常常近乎 <b>0</b>——论文称之为种子的「bad luck」</li>
-          <li>跨三个种子，M3A 得分为 <b>27.6% / 26.3% / 33.2%</b>（均值 29.0%）</li>
-          <li>统计上显著的只有 <span class="hi">AddExpense</span> 与 <span class="hi">EditNote</span>，不是全部任务</li>
-          <li>换设备（Pixel 5 / Android 12）得 28.4%，波动幅度<b>与换种子相当</b></li>
-        </ul>
-      </div>
-    </div>
-    <ul class="pts" style="margin-top:.6rem">
-      <li>具体案例：<b>ExpenseAddSingle</b> 中种子决定要选的分类；若该分类不在首屏，Agent 因<span class="hi">不会滚动</span>而直接失败</li>
-      <li>分寸要读准：设备对比只说明<span class="hi">「保住了基本能力」</span>，不等于实现了任意设备上的泛化</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>12</span></div>
-</section>
-
-<!-- ═══════════════ 13 评价 1 · 贡献边界 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Critical Assessment</span><span class="zh">辩证评价</span></div>
-  <div class="stage">
-    <h2 class="claim">它在任何单项上都不是「最」的</h2>
-    <p class="sub">Not the largest, not the first. The value is in the combination.</p>
-    <div class="cols c2">
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">What It Is Not</div>
-        <h3>不是什么</h3>
-        <p>应用数 20、任务数 116，都不算大——AITW 有 3 万条数据。</p>
-        <p>也不是唯一采用 state-based 评测的 benchmark，OSWorld 已在做桌面版。</p>
-      </div>
-      <div class="col accent">
-        <div class="rule"></div>
-        <div class="label">What It Is</div>
-        <h3>是什么</h3>
-        <p>第一个把下面五件事<b>完整组合</b>成公开、可复现框架的工作：</p>
-        <p>真实安卓环境 · 参数化实例 · 可执行 Agent · 最终状态评测 · 鲁棒性实验</p>
-      </div>
-    </div>
-    <ul class="pts" style="margin-top:1rem">
-      <li>单看每一项都有人做过，<b>难的是把它们拼成一个能跑起来、能复现的整体</b></li>
-      <li>这才是它被 ICLR 接收的理由——<span class="tl">工程整合本身也是一种学术贡献</span></li>
-      <li>所以别指望单项技术多惊艳，它值钱的地方，是把这些都拼成了一个完整、能复现的整体</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>13</span></div>
-</section>
-
-<!-- ═══════════════ 14 评价 2 · 可扩展 ≠ 可移植 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Critical Assessment</span><span class="zh">局限性</span></div>
-  <div class="stage">
-    <h2 class="claim">可扩展性 ≠ 可移植性</h2>
-    <p class="sub">The framework scales. Plugging in an arbitrary app does not.</p>
-    <div class="vs">
-      <div class="box lt">可扩展 ✓<br>框架能在模拟器里运行，也能继续添加新任务</div>
-      <div class="arrow"><div class="ln"></div><div class="tx">not</div></div>
-      <div class="box dk">可移植 ✗<br>接入任意 APK 或真机，并不会自动得到一套可评测任务</div>
-    </div>
-    <div class="cols c3" style="margin-top:1rem">
-      <div class="col"><div class="rule"></div><div class="label">Coupling</div><h3>应用与初始状态</h3><p>每个任务都绑定特定应用与特定的起点构造方式。</p></div>
-      <div class="col"><div class="rule"></div><div class="label">Coupling</div><h3>参数生成与动作接口</h3><p>随机参数的范围、UI 与动作的映射，都需逐应用适配。</p></div>
-      <div class="col accent"><div class="rule"></div><div class="label">Coupling</div><h3>判分器</h3><p>耦合最深的一环，必须知道该应用的数据库结构。</p></div>
-    </div>
-    <ul class="pts" style="margin-top:1rem">
-      <li>这五者相互绑定，<b>没有任何一个能自动迁移到新应用上</b></li>
-      <li>论文对此是诚实的：可复现性做到了极致，代价是可移植性被冻结在已适配的 20 个应用里</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>14</span></div>
-</section>
-
-<!-- ═══════════════ 15 评价 3 · 定位 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Critical Assessment</span><span class="zh">历史定位</span></div>
-  <div class="stage">
-    <h2 class="claim">一个重要的中间阶段，不是最终答案</h2>
-    <p class="sub">A significant step from static benchmarks toward open-world agent evaluation — not the destination.</p>
-    <div class="cols c2" style="margin-bottom:1rem">
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">Avoid Saying</div>
-        <h3>不建议这样说</h3>
-        <p>「它解决了 Android Agent 的泛化问题」</p>
-        <p>任务结构和应用范围仍由人工设计，动态只是参数级的。</p>
-      </div>
-      <div class="col accent">
-        <div class="rule"></div>
-        <div class="label">Better Framing</div>
-        <h3>建议这样说</h3>
-        <p>「它推动了 Agent Benchmark 从<b>静态轨迹、固定任务</b>，走向<b>真实环境、动态实例化、结果导向评测</b>。」</p>
-      </div>
-    </div>
-    <div class="callout">
-      它的贡献不是更强的 Agent，而是更接近真实世界的评测方式。
-      <small>任务结构与应用范围仍由人工设计，因此它更适合作为走向开放世界评测的中间阶段</small>
-    </div>
-    <ul class="pts" style="margin-top:1rem">
-      <li>顺着时间线看：它把 OSWorld 的「state-based」思路搬上安卓，接住「动态实例化」，给后来的移动 Agent 评测留了个参照</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>15</span></div>
-</section>
-
-<!-- ═══════════════ 16 继承 · Mobile-Agent → AndroidWorld ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Lineage</span><span class="zh">与前作的继承</span></div>
-  <div class="stage">
-    <h2 class="claim">Mobile-Agent 负责「做」，AndroidWorld 负责「评」</h2>
-    <p class="sub">Mobile-Agent built the agent; AndroidWorld built the arena to judge it.</p>
-    <div class="flow" style="grid-template-columns:1fr 1fr;margin-bottom:.6rem">
-      <div class="st"><div class="t">Mobile-Agent · 2024.1</div><div class="d">阿里×北交大：视觉中心 Agent，不依赖 XML／无障碍树，配套 Mobile-Eval</div></div>
-      <div class="st"><div class="t">AndroidWorld · 2024.4</div><div class="d">Google DeepMind：评测环境 + M3A baseline，结果导向奖励，ICLR 2025</div></div>
-    </div>
-    <div class="cols c2">
-      <div class="col">
-        <div class="rule"></div>
-        <div class="label">做 Agent</div>
-        <h3>Mobile-Agent：提视觉路线</h3>
-        <p>视觉感知定位界面元素，主张「摆脱无障碍树」，在多样化环境里更通用。</p>
-      </div>
-      <div class="col accent">
-        <div class="rule"></div>
-        <div class="label">做环境</div>
-        <h3>AndroidWorld：立统一标准</h3>
-        <p>用 M3A 把「文本 vs 视觉」两条路线放进同一把尺子，可复现地量。</p>
-      </div>
-    </div>
-    <div class="callout">
-      有意思的是，AndroidWorld 的 M3A 反过来检验了 Mobile-Agent 的「视觉中心」主张
-      <small>安卓无障碍树完整 → 文本 30.6% 胜过视觉 25.4%；多应用真实场景里视觉才不可替代。一个负责提路线，一个负责立标准，标准再回过头检验路线。</small>
-    </div>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>16</span></div>
-</section>
-
-<!-- ═══════════════ 17 最新进展 · 历史任务 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">Latest Progress</span><span class="zh">最新进展</span></div>
-  <div class="stage">
-    <h2 class="claim">AndroidWorld 的历史任务，基本完成了</h2>
-    <p class="sub">Saturated — recent agents exceed 90%; the baton has passed to MobileWorld.</p>
-    <div class="stats" style="margin-bottom:.8rem">
-      <div class="stat"><div class="n">90%+</div><div class="l">AndroidWorld<br>近年 Agent 成功率</div></div>
-      <div class="stat"><div class="n">27.8 : 14.3</div><div class="l">MobileWorld vs AndroidWorld<br>平均任务步数</div></div>
-      <div class="stat"><div class="n">62.2%</div><div class="l">MobileWorld<br>多应用任务占比</div></div>
-      <div class="stat"><div class="n">51.7%</div><div class="l">MobileWorld<br>SOTA 成功率</div></div>
-    </div>
-    <ul class="pts">
-      <li><b>接棒者 MobileWorld</b>（2025.12，ACL 2026）：201 任务 / 20 应用，更长、更多交互、加入 MCP 工具——难度一下子又回到「离做完还远」的水平</li>
-      <li><b>但 AndroidWorld 没退役</b>：AndroidWMSearch、AgentProg、K²-Agent 等新方法仍拿它当标准测试场</li>
-      <li>说到底，它完成了「立标准」这件事——真实环境、state-based 奖励、可复现，现在都成了移动 Agent 评测的标配；它不再是前沿，但成了大家共用的擂台</li>
-    </ul>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>17</span></div>
-</section>
-
-<!-- ═══════════════ 16 收尾 ═══════════════ -->
-<section class="slide">
-  <div class="banner"><span class="sec">Conclusion</span><span class="zh">结论</span></div>
-  <div class="stage" style="justify-content:center;text-align:center">
-    <h2 class="claim" style="text-align:center;font-size:clamp(.95rem,1.8vw,1.45rem)">谢谢，欢迎批评与讨论</h2>
-    <p class="sub" style="text-align:center;margin-bottom:1.5rem">Thank you.</p>
-    <div class="callout" style="margin-bottom:1.5rem">
-      核心贡献是「动态评测环境」而非「更强的 Agent」——结果导向奖励 + 可复现，给后来的 Agent 提供了一个共用的擂台。
-      <small>但可移植性被冻结在已适配的 20 个应用里</small>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="n">116</div><div class="l">安卓任务模板<br>（91 手工 + 25 生成）</div></div>
-      <div class="stat"><div class="n">92</div><div class="l">MobileMiniWoB++<br>网页任务</div></div>
-      <div class="stat"><div class="n">30.6%</div><div class="l">最好 Agent<br>对比人类 80.0%</div></div>
-    </div>
-  </div>
-  <div class="foot"><span>AndroidWorld · ICLR 2025</span><span>18</span></div>
-</section>
-
-</div><!-- /#deck -->
-
-<div id="hud">
-  <div id="dots"></div>
-  <div id="counter"></div>
 </div>
-<div class="hot l" id="hotL"></div>
-<div class="hot r" id="hotR"></div>
 
-<script>
-/* =====================================================================
-   幻灯片控制器
-   ---------------------------------------------------------------------
-   全篇只有一个状态变量 idx；键盘 / 点击 / 触摸 / 滚轮 / 进度点
-   五个入口全部收敛到 go(n)，避免多处各自维护状态导致不同步。
-   ===================================================================== */
-(function () {
-  'use strict';
+<div class="foot">zzyexplorarionofcode.github.io</div>
 
-  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
-  var dotsBox = document.getElementById('dots');
-  var counter = document.getElementById('counter');
-  var prog    = document.getElementById('prog');
-  var total   = slides.length;
-  var idx     = 0;
-
-  /* 生成进度点，点击可直达 */
-  slides.forEach(function (_, i) {
-    var b = document.createElement('button');
-    b.type = 'button';
-    b.setAttribute('aria-label', '第 ' + (i + 1) + ' 页');
-    b.addEventListener('click', function () { go(i); });
-    dotsBox.appendChild(b);
-  });
-  var dots = Array.prototype.slice.call(dotsBox.children);
-
-  /**
-   * 跳转到第 n 页
-   * @param {number} n 目标下标，越界自动夹到 [0, total-1]
-   */
-  function go(n) {
-    idx = Math.max(0, Math.min(total - 1, n));
-    slides.forEach(function (s, i) { s.classList.toggle('active', i === idx); });
-    dots.forEach(function (d, i) { d.classList.toggle('on', i === idx); });
-    counter.textContent = (idx + 1) + ' / ' + total;
-    prog.style.width = (total <= 1 ? 100 : (idx / (total - 1)) * 100) + '%';
-    // 移动端是长文档滚动模式，换页后需要把视口拉回顶部
-    if (window.innerWidth <= 720) window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function next() { go(idx + 1); }
-  function prev() { go(idx - 1); }
-
-  /* 键盘：方向键 / 空格 / PgUp / PgDn / Home / End / 数字键直达 */
-  document.addEventListener('keydown', function (e) {
-    switch (e.key) {
-      case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': case 'Enter':
-        e.preventDefault(); next(); break;
-      case 'ArrowLeft': case 'ArrowUp': case 'PageUp': case 'Backspace':
-        e.preventDefault(); prev(); break;
-      case 'Home': e.preventDefault(); go(0); break;
-      case 'End':  e.preventDefault(); go(total - 1); break;
-      default:
-        if (/^[1-9]$/.test(e.key)) { e.preventDefault(); go(parseInt(e.key, 10) - 1); }
-    }
-  });
-
-  document.getElementById('hotL').addEventListener('click', prev);
-  document.getElementById('hotR').addEventListener('click', next);
-
-  /* 触摸滑动：只认「横向为主且足够长」的滑动，避免和纵向滚动冲突 */
-  var tx = 0, ty = 0;
-  document.addEventListener('touchstart', function (e) {
-    tx = e.changedTouches[0].clientX;
-    ty = e.changedTouches[0].clientY;
-  }, { passive: true });
-
-  document.addEventListener('touchend', function (e) {
-    var dx = e.changedTouches[0].clientX - tx;
-    var dy = e.changedTouches[0].clientY - ty;
-    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      if (dx < 0) next(); else prev();
-    }
-  }, { passive: true });
-
-  /* 滚轮翻页：桌面端启用，带 620ms 节流防止一次滑动跳多页 */
-  var wheelLock = false;
-  document.addEventListener('wheel', function (e) {
-    if (window.innerWidth <= 720) return;   // 移动端保留原生滚动
-    if (wheelLock || Math.abs(e.deltaY) < 24) return;
-    wheelLock = true;
-    setTimeout(function () { wheelLock = false; }, 620);
-    if (e.deltaY > 0) next(); else prev();
-  }, { passive: true });
-
-  /* 支持 #3 这样的地址定位 */
-  function fromHash() {
-    var m = /^#(\d+)$/.exec(location.hash);
-    if (m) go(parseInt(m[1], 10) - 1);
-  }
-  window.addEventListener('hashchange', fromHash);
-
-  go(0);
-  fromHash();
-})();
-</script>
 </body>
 </html>
