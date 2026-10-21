@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>轨迹无关且对对抗训练鲁棒的网站指纹防御 · 论文汇报</title>
+<meta name="description" content="ALERT 论文《Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense》的中文汇报幻灯片。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%2320517C'/></svg>">
+<style>
+/* ═══════════════ 设计变量 ═══════════════
+     配色与版式按参考 PPT 实测取得：
+       横幅 #20517C · 强调 #FF6B35 · 正文 #222222
+       副文 #555555 · 浅卡 #EDEDED · 深卡 #000000
+     全篇衬线字体，与参考稿保持一致。
+     ═══════════════════════════════════════ */
+  :root{
+    --banner:  #20517C;
+    --bg:      #FFFFFF;
+    --ink:     #000000;
+    --body:    #222222;
+    --muted:   #555555;
+    --accent:  #FF6B35;
+    --card-lt: #EDEDED;
+    --card-dk: #000000;
+    --hair:    #B8BCC4;
+    --serif:   Georgia, "Times New Roman", "Songti SC", "SimSun", "STSong", serif;
+    --fig-h:   clamp(240px, 48vh, 420px); /* 单图基准高度：图整体变小、不再撑满整屏 */
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html,body{
+    height:100%;
+    background:#E9EAEC;
+    color:var(--body);
+    font-family:var(--serif);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  #deck{position:fixed;inset:0;}
+
+  .slide{
+    position:absolute;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    background:var(--bg);
+    overflow:hidden;
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  .slide.active{display:flex;opacity:1;}
+
+  /* ── 顶部蓝色横幅 ── */
+  .banner{
+    flex:0 0 auto;
+    background:var(--banner);
+    height:clamp(44px,12%,96px);
+    display:flex;align-items:center;
+    padding:0 clamp(1rem,3.6%,46px);
+    gap:clamp(.5rem,1.4vw,1.1rem);
+    color:#fff;
+  }
+  .banner .num{font-size:clamp(1.3rem,3.6vw,2.8rem);font-weight:700;line-height:1;}
+  .banner .slash{
+    width:2px;height:clamp(1.2rem,3vw,2.3rem);
+    background:#fff;transform:rotate(18deg);opacity:.85;flex:0 0 auto;
+  }
+  .banner .sec{
+    font-size:clamp(.85rem,2.6vw,2rem);
+    font-weight:400;line-height:1.1;text-transform:uppercase;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .banner .zh{
+    font-size:clamp(.55rem,.95vw,.78rem);
+    color:#B9CEDF;letter-spacing:.2em;margin-left:.4rem;white-space:nowrap;
+  }
+
+  /* ═══════════════ 布局基调 ═══════════════
+     关键约定：.stage 的直接子元素一律 flex:0 0 auto（不许被压缩），
+     只有标了 .grow 的图区才吸收剩余空间。
+     之前把 .cols 也设成 min-height:0，导致 flex 把它压成 0 高、
+     内部网格行溢出后互相叠在一起——这条约定就是为了根治那个问题。
+     ═══════════════════════════════════════ */
+  .stage{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;flex-direction:column;
+    justify-content:center; /* 内容垂直居中：纯文字页不再「上满下空」 */
+    padding:clamp(.7rem,2.2%,1.7rem) clamp(1rem,3.6%,46px) 0;
+    overflow:hidden;
+  }
+  .stage > *{flex:0 0 auto;}
+
+  .claim{
+    font-size:clamp(1.15rem,2.6vw,2rem);
+    font-weight:700;color:var(--ink);line-height:1.26;
+    margin-bottom:clamp(.25rem,.8%,.55rem);
+  }
+  .sub{
+    font-size:clamp(.78rem,1.4vw,1.08rem);
+    color:var(--muted);line-height:1.45;font-style:italic;
+    margin-bottom:clamp(.5rem,1.6%,1.1rem);
+  }
+  .sub.plain{font-style:normal;}
+
+  /* ── 多列 ── */
+  .cols{
+    display:grid;grid-template-columns:repeat(var(--n,3),1fr);
+    gap:clamp(.7rem,2.6%,2rem);
+    margin-bottom:clamp(.4rem,1.3%,.9rem);
+  }
+  .cols.c2{--n:2;} .cols.c3{--n:3;} .cols.c4{--n:4;}
+
+  .col{min-width:0;}
+  .col .rule{height:2px;background:var(--ink);margin-bottom:clamp(.35rem,1%,.7rem);}
+  .col.accent .rule{background:var(--accent);}
+
+  .label{
+    font-size:clamp(.6rem,1.05vw,.82rem);
+    letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;
+    margin-bottom:clamp(.24rem,.8%,.5rem);
+  }
+  .col.accent .label{color:var(--accent);}
+
+  .col h3{
+    font-size:clamp(.9rem,1.7vw,1.3rem);
+    font-weight:700;color:var(--ink);line-height:1.28;
+    margin-bottom:clamp(.24rem,.8%,.5rem);
+  }
+  .col p{
+    font-size:clamp(.76rem,1.35vw,1.02rem);
+    line-height:1.55;color:var(--body);
+  }
+  .col p + p{margin-top:.42em;}
+
+  /* ── 黑白对比卡 ── */
+  .vs{display:flex;align-items:stretch;gap:clamp(.4rem,1.2%,1rem);margin:clamp(.3rem,1%,.7rem) 0;}
+  .vs .box{
+    flex:1 1 0;display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:clamp(.45rem,1.2%,.85rem);
+    font-size:clamp(.8rem,1.5vw,1.12rem);font-weight:700;line-height:1.3;
+  }
+  .vs .box.lt{background:var(--card-lt);color:var(--ink);}
+  .vs .box.dk{background:var(--card-dk);color:#fff;}
+  .vs .arrow{
+    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:.25em;min-width:clamp(2rem,7%,4rem);
+  }
+  .vs .arrow .ln{width:100%;height:2px;background:var(--accent);}
+  .vs .arrow .tx{
+    font-size:clamp(.58rem,.95vw,.72rem);color:var(--accent);
+    font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.15;
+  }
+
+  /* ── 黑色强调框 ── */
+  .callout{
+    background:var(--card-dk);color:#fff;
+    padding:clamp(.5rem,1.4%,.9rem) clamp(.8rem,2.2%,1.4rem);
+    font-size:clamp(.9rem,1.6vw,1.22rem);
+    font-weight:700;line-height:1.38;text-align:center;
+  }
+  .callout small{
+    display:block;margin-top:.4em;font-size:.74em;font-weight:400;
+    color:#C9C9C9;font-style:italic;
+  }
+
+  /* ═══════════════ 图区 ═══════════════
+     .fig 是竖排的「图框 + 图注」；.frame 负责按可用高度自适应缩放。
+     图片用 max-width/max-height 双向约束，永不溢出、永不变形。
+     ═══════════════════════════════════════ */
+  .fig{display:flex;flex-direction:column;min-height:0;}
+  .fig .frame{
+    border:1.5px dashed var(--hair);
+    padding:clamp(.25rem,.7%,.5rem);
+    background:#fff;overflow:hidden;
+    box-sizing:border-box;
+  }
+  .fig .frame img{
+    display:block;
+    width:100%;height:100%;
+    object-fit:contain;
+  }
+  .fig .cap{
+    flex:0 0 auto;
+    font-size:clamp(.48rem,.82vw,.65rem);
+    color:var(--muted);font-style:italic;line-height:1.35;
+    margin-top:clamp(.2rem,.6%,.35rem);
+  }
+  /* 通栏单图：靠左、定高，宽度 = 高 × 比例，不再撑满剩余空间 */
+  .fig.grow{flex:0 0 auto;min-height:0;}
+  .fig.grow .frame{
+    flex:0 0 auto;
+    align-self:flex-start;  /* 图统一靠左 */
+    width:min(100%, calc(var(--fig-h) * var(--ar,2)));
+    aspect-ratio:var(--ar,2);
+  }
+
+  .fig-row{
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;
+    gap:clamp(.5rem,1.6%,1.2rem);
+  }
+  .fig-row.c3{grid-template-columns:repeat(3,1fr);}
+  .fig-row.split{grid-template-columns:1.05fr .95fr;}
+  .fig-row > .fig{
+    min-height:0;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .fig-row .fig .frame{
+    width:100%;
+    aspect-ratio:var(--ar,2);
+    max-height:100%;
+  }
+  .fig-row.grow{flex:0 0 auto;min-height:0;}
+  /* 左右分栏里的文字栏：自身可滚动，避免把图挤扁 */
+  .fig-row.split > .side{min-height:0;overflow:hidden;}
+
+  /* ── 流程条 ── */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.35rem,1.1%,.75rem);}
+  .flow .st{border:1.5px dashed var(--hair);padding:clamp(.32rem,.9%,.6rem);}
+  .flow .st .t{font-size:clamp(.68rem,1.2vw,.95rem);font-weight:700;color:var(--banner);margin-bottom:.25em;}
+  .flow .st .d{font-size:clamp(.6rem,1.05vw,.8rem);color:var(--muted);line-height:1.45;}
+
+  /* ── 大数字 ── */
+  .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(.8rem,4%,3rem);}
+  .stat{text-align:center;}
+  .stat .n{
+    font-size:clamp(1.3rem,3vw,2.4rem);
+    font-weight:700;color:var(--banner);line-height:1.1;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .l{font-size:clamp(.62rem,1.1vw,.88rem);color:var(--muted);margin-top:.3em;line-height:1.4;}
+
+  /* ── 列表 ── */
+  ul.pts{list-style:none;}
+  ul.pts li{
+    position:relative;padding-left:1.1em;
+    margin-bottom:clamp(.2rem,.7%,.4rem);
+    font-size:clamp(.76rem,1.35vw,1.02rem);
+    line-height:1.5;color:var(--body);
+  }
+  ul.pts li:last-child{margin-bottom:0;}
+  ul.pts li::before{content:"—";position:absolute;left:0;color:var(--hair);}
+  b,strong{color:var(--ink);font-weight:700;}
+  .hi{color:var(--accent);font-weight:700;}
+  .tl{color:var(--banner);font-weight:700;}
+
+  /* ── 页脚 ── */
+  .foot{
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid var(--hair);
+    margin:0 clamp(1rem,3.6%,46px);
+    padding:clamp(.28rem,.75%,.45rem) 0 clamp(.42rem,1.1%,.7rem);
+    font-size:clamp(.46rem,.78vw,.62rem);
+    color:var(--muted);
+  }
+
+  /* ── 封面 ── */
+  .cover .stage{justify-content:center;align-items:center;text-align:center;padding-bottom:1.5rem;}
+  .cover h1{
+    font-size:clamp(1rem,2.8vw,2.2rem);
+    font-weight:700;color:var(--ink);line-height:1.22;
+    max-width:22ch;margin:0 auto clamp(.5rem,1.8%,1.2rem);
+  }
+  .cover .zh-title{
+    font-size:clamp(.82rem,1.9vw,1.4rem);
+    color:var(--banner);font-weight:700;
+    margin-bottom:clamp(.9rem,3.5%,2.2rem);line-height:1.35;
+  }
+  .cover .meta{font-size:clamp(.62rem,1.1vw,.86rem);color:var(--muted);line-height:1.8;}
+  .cover .venue{
+    flex:0 0 auto;text-align:center;
+    padding-bottom:clamp(1rem,4%,2.4rem);
+    font-size:clamp(.85rem,1.9vw,1.45rem);
+    font-weight:700;color:var(--banner);
+  }
+
+  /* ── 目录 ── */
+  .toc{display:grid;gap:clamp(.15rem,.7%,.45rem);}
+  .toc .it{
+    display:grid;grid-template-columns:clamp(1.4rem,3vw,2.4rem) 1fr;
+    align-items:baseline;gap:clamp(.5rem,1.5%,1rem);
+    padding:clamp(.26rem,.85%,.55rem) 0;
+    border-bottom:1px solid #E8E9EB;
+  }
+  .toc .n{font-size:clamp(.9rem,1.9vw,1.5rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .toc .t{font-size:clamp(.85rem,1.55vw,1.2rem);font-weight:700;color:var(--ink);}
+  .toc .d{font-size:clamp(.65rem,1.1vw,.85rem);color:var(--muted);margin-top:.12em;}
+
+  /* ── 控制条 ── */
+  #prog{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:60;transition:width .3s ease;}
+  #hud{
+    position:fixed;right:clamp(.6rem,2%,1.5rem);bottom:clamp(.4rem,1.4%,.95rem);
+    display:flex;align-items:center;gap:.7rem;z-index:50;
+  }
+  #dots{display:flex;gap:5px;}
+  #dots button{
+    width:7px;height:7px;border-radius:50%;border:none;
+    background:#C7CBD1;cursor:pointer;padding:0;
+    transition:background .2s,transform .2s;
+  }
+  #dots button:hover{background:var(--muted);transform:scale(1.3);}
+  #dots button.on{background:var(--banner);transform:scale(1.3);}
+  #counter{font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .hot{position:fixed;top:0;bottom:0;width:9%;z-index:40;cursor:pointer;}
+  .hot.l{left:0;} .hot.r{right:0;}
+
+  /* ═══════════════ 响应式 ═══════════════ */
+  @media (max-width:1000px){
+    .cols.c3,.cols.c4{--n:2;}
+    .flow{grid-template-columns:repeat(2,1fr);}
+    .fig-row.c3{grid-template-columns:1fr 1fr;}
+  }
+  /* 矮屏：优先削横幅与留白，把高度让给图 */
+  @media (max-height:700px){
+    .banner{height:clamp(40px,10%,72px);}
+    .stage{padding-top:.55rem;}
+    .claim{margin-bottom:.2rem;}
+    .sub{margin-bottom:.5rem;}
+  }
+  /* 窄屏：整页改为可滚动的长文档，图区不再吸收高度 */
+  @media (max-width:720px){
+    html,body{overflow:auto;}
+    .slide{position:relative;inset:auto;min-height:100vh;overflow:visible;}
+    .slide.active{display:flex;}
+    .stage{overflow:visible;padding-bottom:1rem;justify-content:flex-start;}
+    .stage > *,.fig.grow,.fig-row.grow{flex:0 0 auto;}
+    .cols.c2,.cols.c3,.cols.c4{--n:1;}
+    .flow,.fig-row,.fig-row.c3,.fig-row.split{grid-template-columns:1fr;grid-template-rows:none;}
+    .fig .frame{max-height:none;}
+    .vs{flex-direction:column;}
+    .vs .arrow .ln{width:55%;}
+    .hot{display:none;}
+    #hud{right:auto;left:50%;transform:translateX(-50%);}
+  }
+
+  /* ═══════════════ 以下为汇报页新增 ═══════════════
+     站点首页那份样式表里没有的几条：真表格、引文块、竖排小卡、
+     公式块、流程条、备注面板、总览。上面的设计变量原样沿用。 */
+
+  /* ── 真表格（本站首页用的是表格截图，这份讲稿改成矢量表格）── */
+  .tbl-wrap{overflow:auto;min-width:0;}
+  table.tbl{
+    width:100%;border-collapse:collapse;table-layout:fixed;
+    font-size:calc(clamp(.58rem,1vw,.8rem) * var(--fs,1));
+  }
+  table.tbl th,table.tbl td{
+    padding:.45em .55em;border:1px solid #E3E5E9;line-height:1.38;
+    text-align:center;color:var(--body);vertical-align:middle;
+    overflow-wrap:break-word;
+  }
+  table.tbl th{background:#E8EAEE;color:var(--ink);font-weight:700;}
+  table.tbl td:first-child,table.tbl th:first-child{text-align:left;}
+  table.tbl tbody tr:nth-child(even) td{background:var(--card-lt);}
+  table.tbl td.b{font-weight:700;color:var(--ink);}
+
+  /* ── 卡片栏：密页把行距收紧一点 ── */
+  .cols.tight{gap:clamp(.6rem,2%,1.4rem);}
+  .col.green .rule{background:#1E7A4B;}
+  .col.green .label{color:#1E7A4B;}
+  .col.blue .rule{background:#1F4E9C;}
+  .col.blue .label{color:#1F4E9C;}
+  .col.muted .rule{background:var(--hair);}
+
+  /* ── 左图右文 / 左表右文的通用分栏 ── */
+  .split{
+    display:grid;align-items:start;min-height:0;
+    gap:clamp(.9rem,2.6%,2rem);margin-bottom:clamp(.3rem,1%,.6rem);
+  }
+  .split.media{grid-template-columns:1.02fr .98fr;}
+  .split.table{grid-template-columns:1.15fr .85fr;}
+  .split.formula{grid-template-columns:.95fr 1.05fr;}
+  .split > *{min-width:0;}
+
+  /* ── 竖排小卡：图旁边那几条说明 ── */
+  .stack{display:grid;gap:clamp(.6rem,1.8%,1.1rem);align-content:start;}
+  .mini{border-top:2px solid var(--ink);padding-top:.5em;}
+  .mini.accent{border-color:var(--accent);}
+  .mini.green{border-color:#1E7A4B;}
+  .mini.blue{border-color:#1F4E9C;}
+  .mini.muted{border-color:var(--hair);}
+  .mini h4{
+    font-size:clamp(.88rem,1.6vw,1.18rem);font-weight:700;color:var(--ink);
+    line-height:1.3;margin-bottom:.32em;
+  }
+  .mini p{font-size:clamp(.74rem,1.28vw,.98rem);line-height:1.55;color:var(--body);}
+  .mini .label{margin-bottom:.36em;}
+  .rcol{display:grid;gap:clamp(.7rem,2%,1.1rem);align-content:start;}
+
+  /* ── 图框：按真实宽高比撑开，图不会被拉变形 ── */
+  .fig{display:flex;flex-direction:column;min-height:0;min-width:0;}
+  .fig .frame{
+    border:1.5px dashed var(--hair);background:#fff;
+    padding:clamp(.22rem,.6%,.45rem);box-sizing:border-box;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fig.fit .frame{aspect-ratio:var(--ar,1.6);width:100%;}
+  /* 通栏图：按可用高度反推宽度，图框正好贴住图，不留白带 */
+  .fig.center{align-items:center;}
+  .fig.center .frame{width:min(100%, calc(var(--fh,40vh) * var(--ar,1.6)));aspect-ratio:var(--ar,1.6);}
+  .fig .frame img{display:block;width:100%;height:100%;object-fit:contain;}
+  .fig .cap{
+    font-size:clamp(.5rem,.85vw,.68rem);color:var(--muted);font-style:italic;
+    line-height:1.4;margin-top:.3em;
+  }
+
+  /* ── 公式块 ── */
+  .frows{display:grid;gap:clamp(.4rem,1.4%,.85rem);}
+  .frow .k{font-size:clamp(.78rem,1.4vw,1.02rem);font-weight:700;color:var(--ink);}
+  .frow .v{font-size:clamp(.7rem,1.22vw,.94rem);color:var(--body);line-height:1.5;margin-top:.16em;}
+  .fbox{
+    background:var(--card-lt);padding:clamp(.8rem,2.2%,1.5rem) clamp(.9rem,2.4%,1.6rem);
+    text-align:center;
+  }
+  .fbox .fmain{font-size:clamp(.82rem,1.5vw,1.1rem);font-weight:700;color:var(--ink);line-height:1.4;}
+  .fbox .fnote{font-size:clamp(.62rem,1.08vw,.84rem);color:var(--muted);line-height:1.5;margin-top:.9em;}
+
+  /* ── 流程条 ── */
+  .flow{
+    display:grid;grid-template-columns:repeat(var(--n,4),1fr);
+    gap:clamp(.35rem,1.1%,.7rem);margin-bottom:clamp(.6rem,1.8%,1.1rem);
+  }
+  .flow .st{
+    border:1.5px solid var(--hair);background:var(--card-lt);
+    padding:clamp(.45rem,1.2%,.7rem) clamp(.35rem,.9%,.55rem);
+    font-size:clamp(.6rem,1.06vw,.82rem);line-height:1.4;text-align:center;color:var(--body);
+  }
+  .flow .st.last{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+
+  /* ── 例子的设定条与两张并排的表 ── */
+  .setup{
+    background:var(--card-lt);text-align:center;
+    padding:clamp(.4rem,1.1%,.65rem) clamp(.6rem,1.6%,1rem);
+    font-size:clamp(.66rem,1.15vw,.88rem);color:var(--body);
+    margin-bottom:clamp(.6rem,1.8%,1rem);
+  }
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.9rem,2.6%,2rem);margin-bottom:clamp(.6rem,1.8%,1rem);}
+  .panel .ptitle{font-size:clamp(.62rem,1.08vw,.84rem);color:var(--muted);margin-bottom:.4em;}
+
+  /* ── 引文块（正例 / 反例）── */
+  .quoteboxes{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.8rem,2.4%,1.8rem);margin-bottom:clamp(.7rem,2%,1.2rem);}
+  .quotebox{padding:clamp(.6rem,1.6%,1rem) clamp(.7rem,1.9%,1.2rem);}
+  .quotebox.pos{background:#ECF5EF;}
+  .quotebox.neg{background:var(--card-lt);}
+  .quotebox q{
+    display:block;font-style:italic;color:var(--ink);
+    font-size:clamp(.72rem,1.28vw,.98rem);line-height:1.45;
+  }
+  .quotebox .nb{display:block;margin-top:.7em;font-size:clamp(.64rem,1.1vw,.86rem);line-height:1.5;}
+  .quotebox.pos .nb{color:#1E7A4B;}
+  .quotebox.neg .nb{color:var(--muted);}
+
+  /* ── 灰色小字注 ── */
+  .src{font-size:clamp(.56rem,.95vw,.72rem);color:var(--muted);line-height:1.45;margin-top:.5em;}
+  .lead{font-size:clamp(.76rem,1.35vw,1.02rem);color:var(--body);line-height:1.55;margin-bottom:clamp(.5rem,1.6%,1rem);}
+
+  /* ── 封面（分栏）与收尾页 ── */
+  .cover.wide .stage{align-items:stretch;text-align:left;justify-content:center;}
+  .cover-grid{
+    display:grid;grid-template-columns:1.02fr .98fr;
+    gap:clamp(1rem,3.4%,2.6rem);align-items:center;width:100%;
+  }
+  .cover .eyebrow{
+    font-size:clamp(.58rem,1.05vw,.82rem);letter-spacing:.26em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin-bottom:1em;
+  }
+  .cover-grid h1{
+    font-size:clamp(1.1rem,2.9vw,2.3rem);font-weight:700;color:var(--ink);
+    line-height:1.24;margin:0 0 .7em;max-width:none;
+  }
+  .cover .en-title{
+    font-size:clamp(.64rem,1.12vw,.88rem);color:var(--muted);
+    font-style:italic;line-height:1.55;margin-bottom:1.4em;
+  }
+  .cover .hr{width:34%;height:2px;background:var(--ink);margin-bottom:1.3em;}
+  .cover .meta{font-size:clamp(.6rem,1.06vw,.84rem);color:var(--body);line-height:1.9;}
+  .cover .meta .dim{color:var(--muted);}
+  .cover-fig{min-width:0;display:flex;justify-content:center;}
+  .cover-fig .fig{width:100%;}
+
+  .thanks .stage{justify-content:center;align-items:center;text-align:center;}
+  .thanks h1{font-size:clamp(1.5rem,4.2vw,3rem);font-weight:700;color:var(--ink);margin-bottom:.5em;}
+  .thanks .hr{width:80px;height:2px;background:var(--hair);margin:1.6em auto;}
+
+  /* ── 备注面板（按 N 开关）与总览（按 O 开关）── */
+  #notes{
+    position:fixed;left:0;right:0;bottom:0;z-index:70;display:none;
+    max-height:40vh;overflow:auto;background:#15161A;color:#E6E6E6;
+    padding:1.2rem clamp(1rem,4%,3rem) 1.6rem;
+    font-size:.8rem;line-height:1.75;white-space:pre-wrap;
+  }
+  body.show-notes #notes{display:block;}
+  #notes .nt{color:var(--accent);font-weight:700;letter-spacing:.18em;font-size:.66rem;margin-bottom:.7em;}
+
+  #ov{
+    position:fixed;inset:0;z-index:80;display:none;overflow:auto;
+    background:rgba(255,255,255,.98);padding:clamp(1.4rem,4%,3rem) clamp(1rem,5%,4rem);
+  }
+  body.show-ov #ov{display:block;}
+  #ov .ovh{font-size:.7rem;letter-spacing:.24em;color:var(--accent);font-weight:700;margin-bottom:1.2rem;}
+  #ov .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.8rem;}
+  #ov button{
+    font-family:inherit;text-align:left;cursor:pointer;background:#fff;
+    border:1px solid var(--hair);padding:.7rem .85rem;color:var(--body);
+    font-size:clamp(.66rem,1.1vw,.82rem);line-height:1.45;transition:border-color .15s,transform .15s;
+  }
+  #ov button:hover{border-color:var(--accent);transform:translateY(-2px);}
+  #ov button .n{color:var(--accent);font-weight:700;margin-right:.45em;font-variant-numeric:tabular-nums;}
+
+  @media (max-width:1000px){
+    .split.media,.split.table,.split.formula{grid-template-columns:1fr;}
+    .panels,.quoteboxes,.cover-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:720px){
+    .flow{grid-template-columns:1fr 1fr;}
+    .fig.center .frame{height:auto;width:100%;}
+    #notes{position:static;max-height:none;}
+  }
+
+
+  /* ── ALERT 专用覆盖：表格按 PPT 的无竖线样式，公式图自适应 ── */
+  table.tbl th,table.tbl td{border:none;border-bottom:1px solid #E3E5E9;}
+  table.tbl thead th{border-bottom:1px solid #C9CED6;}
+  table.tbl tbody tr:nth-child(even) td{background:#F7F8FA;}
+  table.tbl td.hl{background:#FDEDE6 !important;font-weight:700;color:var(--ink);}
+  table.tbl tr.hl td{background:#FDEDE6 !important;font-weight:700;color:var(--ink);}
+  .fig .frame{border:none;padding:0;}
+  .fbox{background:transparent;padding:.15rem 0;}
+  .fbox img{max-width:100%;height:auto;display:block;margin:0 auto;}
+  .fbox.eq{padding:.2rem 0;}
+  .col .fbox.eq{height:120px;display:flex;align-items:center;justify-content:center;}
+  .col .fbox.eq img{max-height:105px;width:auto;max-width:100%;}
+  .frow .v img{max-width:100%;height:auto;display:block;margin:.25em 0 .3em;}
+  .callout{margin-top:.65rem;}
+  .tbl-wrap{margin-bottom:.35rem;}
+  table.tbl{font-size:calc(clamp(.62rem,1.05vw,.95rem)*var(--fs,1));}
+  /* 内容页改为顶部对齐，更接近 PPT 的阅读顺序 */
+  .slide:not(.cover):not(.thanks) .stage{justify-content:flex-start;padding-top:clamp(1.2rem,3.6vh,2.4rem);}
+  /* 黑色结论条贴到内容区底部，和 PPT 的通栏位置一致 */
+  .stage > .callout{margin-top:auto;}
+</style>
+</head>
+<body>
+<div id="deck">
+<section data-notes="这篇是 INFOCOM 2024 的 ALERT，做的是 Tor 上的网站指纹防御。&#10;今天按背景、方法、实验、讨论四块讲，重点在它怎么同时做到轨迹无关和抗对抗训练，以及这两个结论各自的边界。" class="slide cover wide">
+<div class="banner"><span class="slash"></span></div>
+  <div class="stage">
+    <div class="cover-grid">
+      <div class="cover-text">
+        <div class="eyebrow">组会论文汇报 · Website Fingerprinting Defense</div>
+        <h1>轨迹无关且对对抗训练鲁棒的<br>网站指纹防御</h1>
+        <div class="en-title">Trace-agnostic and Adversarial Training-resilient<br>Website Fingerprinting Defense</div>
+        <div class="hr"></div>
+        <div class="meta">
+          Litao Qiao · Cuiying Gao · Bang Wu · Wei Yuan · Heng Li · Xiapu Luo<br>
+          <span class="dim">华中科技大学 · 香港理工大学</span><br>
+          <span class="dim">IEEE INFOCOM 2024 · DOI 10.1109/INFOCOM52122.2024.10621205</span>
+        </div>
+      </div>
+      <div class="cover-fig"><div class="fig fit"><div class="frame" style="--ar:1.9195"><img src="assets/fig1.png" alt=""></div></div></div>
+    </div>
+  </div>
+</section>
+<section data-notes="先交代攻击面。Tor 隐藏了目的地，但入口链路上的方向序列还在；WF 就是靠这个节奏识别网站。&#10;DF、AWF、Var-CNN 三类 DNN 攻击在无防御时已经到了 87%–97%。" class="slide">
+<div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
+  <div class="stage">
+    <h2 class="claim">Tor 上的网站指纹攻击</h2><p class="sub">网站指纹（Website Fingerprinting, WF）利用加密流量的方向与节奏识别访问对象</p>
+<div class="split media">
+      <div class="stack">
+        <div class="mini"><h4>入口链路上的被动观察者</h4><p>Tor（洋葱路由）为用户随机选择入口、中间、出口三跳。观察者位于用户与入口节点之间，看不到目的地，但能看到每个包的方向、数量与到达时间；攻击者据此采集流量轨迹（trace）并训练分类器。</p></div>
+        <div class="mini accent"><h4>基于 DNN 的攻击已达 87%–97%</h4><p>三类深度神经网络（Deep Neural Network, DNN）攻击：DF（Deep Fingerprinting）97.05%、Var-CNN 95.88%、AWF（Automated Website Fingerprinting）87.74%；输入均为包方向构成的突发序列（burst sequence）。</p></div>
+      </div>
+      <div class="fig fit"><div class="frame" style="--ar:1.9195"><img src="assets/fig1.png" alt=""></div><div class="cap">图 1  WF 攻击模型（原文 Fig. 1）</div></div>
+    </div>
+    <div class="callout">防御的对象不是加密算法，而是流量在链路上呈现的形状</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="AE 防御便宜，但要替代填充类方法，得同时满足三件事：扰动要在看到 trace 之前算好；要扛得住攻击者把扰动样本加入训练；还要能处理开环。&#10;现有方法通常只做到一两条。" class="slide">
+<div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
+  <div class="stage">
+    <h2 class="claim">对抗样本防御与三项部署要求</h2><p class="sub">对抗样本（Adversarial Example, AE）防御开销低，但要替代填充（padding）类方法，必须同时满足三个条件</p>
+<div class="cols c3">
+      <div class="col"><div class="rule"></div><div class="label">轨迹无关 TRACE-AGNOSTIC</div><h3>扰动必须在流量之前算好</h3><p>Mockingbird 需要完整流量轨迹（trace）才能求扰动，而完整 trace 只有在通信结束后才可得，因此无法在线部署。</p></div>
+      <div class="col accent"><div class="rule"></div><div class="label">抗对抗训练 ROBUSTNESS</div><h3>对抗训练（AT）能把扰动学回去</h3><p>对抗训练（Adversarial Training, AT）把扰动样本加入训练即可恢复识别能力：simple AT 只用攻击者自己的数据，advanced AT 合并多个攻击者的数据。DF 的攻击成功率（Attack Success Rate, ASR）在 advanced AT 下回升至 57.17%。</p></div>
+      <div class="col"><div class="rule"></div><div class="label">可扩展到开环 EXTENSIBILITY</div><h3>还要处理未监控网站</h3><p>现有防御多在闭环（closed-world，只考虑监控网站）评估；开环（open-world，还需处理未监控网站）中，AWA 因未监控网站样本不足而无法使用。</p></div>
+    </div>
+    <div class="callout">三项要求彼此牵连，只满足其中一项不足以构成可部署的防御</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="这张表是全文的定位：Mockingbird 不满足轨迹无关，AWA 扛不住 advanced AT、也进不了开环，ALERT 三项都打勾。&#10;后面实验就是围绕这三列展开。" class="slide">
+<div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
+  <div class="stage">
+    <h2 class="claim">现有方法在三项要求上的位置</h2><p class="sub">论文的增量在于同时补齐三项，而不是提出新的扰动形式</p>
+<div class="tbl-wrap" style="--fs:1.1"><table class="tbl">
+      <colgroup><col style="width:30%"><col style="width:18%"><col style="width:18%"><col style="width:20%"><col style="width:14%"></colgroup>
+      <thead><tr><th>方法</th><th>轨迹无关</th><th>抗 simple AT</th><th>抗 advanced AT</th><th>开环可用</th></tr></thead>
+      <tbody>
+        <tr><td>Mockingbird</td><td>×</td><td>×</td><td>×</td><td>—</td></tr>
+        <tr><td>AWA</td><td>√</td><td>√</td><td>×</td><td>×</td></tr>
+        <tr class="hl"><td>ALERT</td><td>√</td><td>√</td><td>√</td><td>√</td></tr>
+      </tbody></table></div>
+    <p class="src">闭环（closed-world）只考虑监控网站；开环（open-world）还需处理未监控网站。依据论文 §III.B 与 §VI；“—”表示未评估。</p>
+    <div class="callout">ALERT 的设计与实验均围绕这三项要求展开</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="左边离线训练生成器，右边在线注入。两个设计：UP 让扰动不依赖具体 trace；随机网站模仿让不同用户的扰动不一样。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">METHOD</span><span class="zh">方法</span></div>
+  <div class="stage">
+    <h2 class="claim">ALERT 的整体结构</h2><p class="sub">左半部分离线训练生成器，右半部分在线注入扰动</p>
+<div class="fig center"><div class="frame" style="--ar:2.9391;--fh:38vh"><img src="assets/fig3.png" alt=""></div><div class="cap">图 3  ALERT 的训练与注入流程（原文 Fig. 3）</div></div><div class="cols c2" style="margin-top:.7rem">
+      <div class="mini accent"><div class="label">设计一 通用扰动（UP）</div><h4>扰动不依赖具体 trace</h4><p>ALERT 以生成对抗网络（Generative Adversarial Network, GAN）训练生成器 G_O（每个网站一个）：输入随机噪声 z，输出不依赖具体 trace 的扰动；扰动可在浏览开始前算好。</p></div>
+      <div class="mini accent"><div class="label">设计二 随机网站模仿</div><h4>不同用户的扰动不一样</h4><p>为 W_O 随机选择模仿对象 W_T，使扰动后的流量接近 W_T；不同用户得到不同的 T，扰动随之分散。</p></div>
+    </div>
+    <div class="callout">通用扰动解决“无 trace 可用”，随机模仿解决“AT 可学习”</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="UP 的定义就是：对同一网站的任意 trace，加上同一个扰动后分类都会错，同时 L1 预算不超过 ε。&#10;所以它可以提前算好，这是在线部署的前提。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">METHOD</span><span class="zh">方法</span></div>
+  <div class="stage">
+    <h2 class="claim">通用扰动：优化对象从样本变为网站</h2><p class="sub">普通对抗样本依赖具体输入，UP 要求对同一网站的任意 trace 生效</p>
+<div class="split media">
+      <div class="stack">
+        <div class="fbox eq"><div class="fmain"><img src="assets/eq1.png" alt="式 (1)" style="width:min(100%,430px)"></div><div class="fnote">式 (1) 通用扰动（Universal Perturbation, UP）的定义</div></div>
+        <div class="frows">
+          <div class="frow"><div class="k">① ν 与 x 无关</div><div class="v">同一网站的所有 trace 共享一个生成器，推理时只需采样 z。</div></div>
+          <div class="frow"><div class="k">② 约束 ‖ν‖₁ ≤ ε</div><div class="v">扰动以插入包的数量计量，直接对应额外带宽。</div></div>
+          <div class="frow"><div class="k">③ 目标不是最大化误分类</div><div class="v">而是在预算内使 f(x+ν) ≠ f(x)。</div></div>
+        </div>
+      </div>
+      <div class="fig fit"><div class="frame" style="--ar:1.8068"><img src="assets/fig2.png" alt=""></div><div class="cap">图 2  原始与扰动后的 burst 序列（原文 Fig. 2）</div></div>
+    </div>
+    <div class="callout">UP 使扰动可以提前计算，这是 trace-agnostic 的技术前提</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="随机模仿把流量推向另一个随机网站。闭环 N=95 时配置空间是 94 的 95 次方，开环是 Q 的 N 次方乘 N。&#10;论文用这个说明用户碰撞概率极低。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">METHOD</span><span class="zh">方法</span></div>
+  <div class="stage">
+    <h2 class="claim">随机网站模仿：让扰动随用户分散</h2><p class="sub">随机网站模仿（Random Website Imitation）：同一网站的不同用户模仿不同对象，攻击者难以用一套样本覆盖</p>
+<div class="cols c2">
+      <div class="fbox eq"><div class="fmain"><img src="assets/eq2.png" alt="式 (2)" style="width:min(100%,300px)"></div><div class="fnote">式 (2) 闭环（closed-world）的模仿配置数</div></div>
+      <div class="fbox eq"><div class="fmain"><img src="assets/eq3.png" alt="式 (3)" style="width:min(100%,280px)"></div><div class="fnote">式 (3) 开环（open-world）的模仿配置数</div></div>
+    </div>
+    <div class="cols c3" style="margin-top:.7rem">
+      <div class="col"><div class="rule"></div><h3>闭环：94⁹⁵</h3><p>N=95 时，模仿配置（profile）总数 S_m=94⁹⁵，用户碰撞概率可忽略；论文据此认为攻击者难以取得与受害者同分布的样本。</p></div>
+      <div class="col"><div class="rule"></div><h3>开环：Qᴺ·N</h3><p>Q=40,000，S_um=Qᴺ·N；未监控网站越多，模仿配置空间越大。</p></div>
+      <div class="col accent"><div class="rule"></div><h3>论证的落点</h3><p>配置空间的大小由 N、Q 与用户数共同决定，论文据此论证用户间扰动难以被统一覆盖。</p></div>
+    </div>
+    <div class="callout">抗 AT 的依据是“样本覆盖不到”，而不是“扰动强度更高”</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="生成器只吃噪声，判别器是预训练的 DF。这里有一个迁移性假设：在 DF 上算出来的扰动，能迁移到 AWF、Var-CNN 这些没见过的分类器。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">METHOD</span><span class="zh">方法</span></div>
+  <div class="stage">
+    <h2 class="claim">生成器与替代模型</h2><p class="sub">生成器只接收噪声，判别器由预训练的 DF 充当</p>
+<div class="split media">
+      <div class="frows">
+        <div class="frow"><div class="k">① 生成器结构</div><div class="v">全连接层、激活函数与 Dropout 交替，重复 5 次；输入 2,000 维高斯噪声，输出非负扰动向量。</div></div>
+        <div class="frow"><div class="k">② 替代模型（substitute model）</div><div class="v">预训练的 DF，提供特征 Θ(·) 与置信度 Γ(·)，在训练中充当判别器（discriminator）。</div></div>
+        <div class="frow"><div class="k">③ 迁移性（transferability）假设</div><div class="v">替代模型上求得的扰动可迁移到 AWF、Var-CNN 等未知分类器；论文用这三类攻击验证迁移效果。</div></div>
+      </div>
+      <div class="fig fit"><div class="frame" style="--ar:1.3217"><img src="assets/fig4.png" alt=""></div><div class="cap">图 4  生成器网络结构（原文 Fig. 4）</div></div>
+    </div>
+    <div class="callout">生成器不依赖待保护 trace，因此可以在线部署</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="总损失三项：模仿、攻击、开销。权重都是 1，ε=0.22 大约对应 20% 的额外带宽。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">METHOD</span><span class="zh">方法</span></div>
+  <div class="stage">
+    <h2 class="claim">三项损失</h2><p class="sub">模仿效果、攻击效果与带宽开销同时进入目标函数</p>
+<div class="fbox eq"><div class="fmain"><img src="assets/eq6.png" alt="式 (6)" style="width:min(100%,560px)"></div><div class="fnote">式 (6) 生成器总损失；权重 α=β=γ=1（表 I）</div></div>
+    <div class="cols c3" style="margin-top:.7rem">
+      <div class="col"><div class="fbox eq"><img src="assets/eq7.png" alt="式 (7)" style="width:100%"></div><h3>loss_sim  模仿效果</h3><p>Θ(x'_O) 与 Θ(x_T) 的余弦相似度；使扰动后的特征靠近模仿对象。</p></div>
+      <div class="col"><div class="fbox eq"><img src="assets/eq8.png" alt="式 (8)" style="width:100%"></div><h3>loss_adv  攻击效果</h3><p>压低原网站置信度，抬高其他网站的最高置信度；k=0 用于稳定训练。</p></div>
+      <div class="col"><div class="fbox eq"><img src="assets/eq9.png" alt="式 (9)" style="width:100%"></div><h3>loss_per  带宽开销</h3><p>额外流量占比超过 ε 时产生惩罚；ε=0.22 对应约 20% 的额外带宽。</p></div>
+    </div>
+    <div class="callout">三项损失对应三个约束：靠近模仿对象、降低分类置信度、约束额外开销</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="训练是逐网站做的：选模仿对象、采样、生成扰动、算损失、更新参数，重复 M 次。&#10;训练要离线 trace，推理只要噪声和生成器。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">METHOD</span><span class="zh">方法</span></div>
+  <div class="stage">
+    <h2 class="claim">训练流程</h2><p class="sub">每个网站独立训练，N 个生成器共用同一套替代模型</p>
+<div class="split media">
+      <div class="frows">
+        <div class="frow"><div class="k">① 选择模仿对象</div><div class="v">为 W_O 随机选择 W_T，T ≠ O。</div></div>
+        <div class="frow"><div class="k">② 采样</div><div class="v">从 X_T 与 X_O 各取一批样本。</div></div>
+        <div class="frow"><div class="k">③ 生成</div><div class="v">采样 z ~ P，按式 (4) 得到 x'_O。</div></div>
+        <div class="frow"><div class="k">④ 优化</div><div class="v">计算式 (6) 的三项损失，更新参数 θ_O。</div></div>
+        <div class="frow"><div class="k">⑤ 输出</div><div class="v">重复 M 次，得到网站 O 的生成器 G_O。</div></div>
+      </div>
+      <div class="fig center"><div class="frame" style="--ar:0.8108;--fh:46vh"><img src="assets/algo1.png" alt=""></div><div class="cap">算法 1  通用扰动生成（原文 Algorithm 1）</div></div>
+    </div>
+    <p class="src">训练需要离线 trace；在线推理只需要 z 与 G_O。算法中的损失与更新步骤与式 (4)、(6) 对应。</p>
+    
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="注入时把扰动取整，按 burst 位置插包。它只加长已有的 burst，不新增方向，所以序列结构还是合法的。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">METHOD</span><span class="zh">方法</span></div>
+  <div class="stage">
+    <h2 class="claim">扰动注入：把扰动变成填充包</h2><p class="sub">扰动向量只含非负整数，每个元素对应一个 burst 位置的填充包（dummy packet）数量</p>
+<div class="split media">
+      <div class="stack">
+        <div class="fbox eq"><div class="fmain"><img src="assets/eq4.png" alt="式 (4)" style="width:min(100%,400px)"></div><div class="fnote">式 (4) 扰动后的 burst 序列；sign(·) 决定方向</div></div>
+        <div class="tbl-wrap"><table class="tbl">
+          <colgroup><col style="width:30%"><col style="width:30%"><col style="width:40%"></colgroup>
+          <thead><tr><th>x_n</th><th>sign(x_n)</th><th>含义</th></tr></thead>
+          <tbody>
+            <tr><td>x_n &gt; 0</td><td>+1</td><td>上行</td></tr>
+            <tr><td>x_n = 0</td><td>0</td><td>不插包</td></tr>
+            <tr><td>x_n &lt; 0</td><td>−1</td><td>下行</td></tr>
+          </tbody></table></div>
+      </div>
+      <div class="frows">
+        <div class="frow"><div class="k">① 取整</div><div class="v">以 ⟨G_X(z)⟩ 代替 G_X(z)，保证每个位置插入整数个包。</div></div>
+        <div class="frow"><div class="k">② 只加长已有 burst</div><div class="v">x_n=0 处增量为 0，不新增方向或 burst，序列结构保持合法。</div></div>
+        <div class="frow"><div class="k">③ 在线执行</div><div class="v">浏览过程中按 burst 的位置逐段插入 dummy packet。</div></div>
+      </div>
+    </div>
+    <div class="callout">注入只改变 burst 计数，不改变包长、协议头或负载</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="数据用的是 Sirinam 的公开数据集，95 个监控站、每站 1000 条；开环再加 4 万个未监控站、每站 1 条。&#10;序列截断到 2000 维，ε 默认 0.22。" class="slide">
+<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验</span></div>
+  <div class="stage">
+    <h2 class="claim">数据集与实验设置</h2><p class="sub">复用 Sirinam 等的公开数据集；闭环与开环使用同一数据来源</p>
+<div class="split table">
+      <div><div class="tbl-wrap"><table class="tbl">
+        <colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+        <thead><tr><th>项目</th><th>设置</th></tr></thead>
+        <tbody>
+          <tr><td>监控网站</td><td>95 个（Alexa Top-100）</td></tr>
+          <tr><td>监控样本</td><td>每站 1,000 条 trace</td></tr>
+          <tr><td>未监控网站</td><td>40,000 个（Top-50000 排除 Top-100）</td></tr>
+          <tr><td>未监控样本</td><td>每站 1 条 trace</td></tr>
+          <tr><td>序列长度</td><td>2,000（补零 / 截断）</td></tr>
+          <tr><td>替代模型</td><td>DF</td></tr>
+          <tr><td>评估攻击</td><td>DF、AWF、Var-CNN</td></tr>
+          <tr><td>扰动预算 ε</td><td>0.22（对照 0.10 / 0.90）</td></tr>
+        </tbody></table></div></div>
+      <div class="mini"><div class="label">关键超参数（表 I）</div>
+        <p>z 维度 2,000；batch 64；Adam；epoch 200</p>
+        <p>α=β=γ=1；k=0；ε=0.22</p>
+        <p>生成器重复 5 次；序列长度 2,000</p>
+        <p>对比方法：WTF-PAD、Walkie-Talkie、Mockingbird、AWA</p>
+      </div>
+    </div>
+    <div class="callout">两组实验共用同一数据集，差别主要在是否存在未监控网站</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="simple AT 下 ALERT 把 DF 压到 12.68%，开销 20.13%；开销相近的 AWA 是 19.52%，ALERT 低约 6.8 个百分点。" class="slide">
+<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验</span></div>
+  <div class="stage">
+    <h2 class="claim">闭环：simple AT 下的结果</h2><p class="sub">攻击者只用自己采集的扰动样本训练分类器</p>
+<div class="split table">
+      <div><div class="tbl-wrap"><table class="tbl">
+        <colgroup><col style="width:28%"><col style="width:18%"><col style="width:18%"><col style="width:18%"><col style="width:18%"></colgroup>
+        <thead><tr><th>方法</th><th>开销</th><th>DF</th><th>AWF</th><th>Var-CNN</th></tr></thead>
+        <tbody>
+          <tr><td>无防御</td><td>0.00%</td><td>97.05%</td><td>87.74%</td><td>95.88%</td></tr>
+          <tr><td>WTF-PAD</td><td>64.00%</td><td>86.00%</td><td>29.15%</td><td>90.00%</td></tr>
+          <tr><td>Walkie-Talkie</td><td>72.00%</td><td>40.00%</td><td>36.90%</td><td>44.00%</td></tr>
+          <tr><td>Mockingbird</td><td>58.00%</td><td>42.00%</td><td>26.09%</td><td>35.00%</td></tr>
+          <tr><td>AWA</td><td>22.28%</td><td>19.52%</td><td>15.19%</td><td>16.80%</td></tr>
+          <tr class="hl"><td>ALERT</td><td>20.13%</td><td>12.68%</td><td>8.29%</td><td>7.49%</td></tr>
+        </tbody></table></div>
+        <p class="src">ASR 越低越好；开销为额外带宽占原始流量的比例。数据来源：论文表 II。</p></div>
+      <div class="frows">
+        <div class="frow"><div class="k">① 主结果</div><div class="v">ALERT 的 DF ASR 为 12.68%，开销 20.13%。</div></div>
+        <div class="frow"><div class="k">② 与 AWA 对比</div><div class="v">开销相近的 AWA 为 19.52%，ALERT 低 6.84 个百分点。</div></div>
+        <div class="frow"><div class="k">③ 另外两类攻击</div><div class="v">AWF 与 Var-CNN 分别降至 8.29% 与 7.49%。</div></div>
+      </div>
+    </div>
+    <div class="callout">在单用户 AT 下，ALERT 同时取得最低 ASR 与最低开销</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="这张热图有两件事：对角线是用户碰撞，ASR 超过 99%，防御直接失效；非对角线 ASR 明显下降。&#10;ε 越大越安全，但开销也越高。" class="slide">
+<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验</span></div>
+  <div class="stage">
+    <h2 class="claim">扰动预算 ε 的影响</h2><p class="sub">用户碰撞时防御失效；ε 增大时 ASR 下降、开销上升</p>
+<div class="fig fit"><div class="frame" style="--ar:3.1346"><img src="assets/fig5.png" alt=""></div><div class="cap">图 5  simple AT 下不同 ε 的 ASR 热图（原文 Fig. 5）</div></div><div class="cols c3" style="margin-top:.6rem">
+      <div class="col"><div class="rule"></div><h3>对角线：碰撞</h3><p>训练与测试为同一用户，ASR &gt; 99%。</p></div>
+      <div class="col"><div class="rule"></div><h3>非对角线：分散</h3><p>ASR 显著下降，用户间差异起作用。</p></div>
+      <div class="col accent"><div class="rule"></div><h3>ε 越大越安全</h3><p>ε 从 0.10 增至 0.90，ASR 由约 20% 降至 9% 以下，开销同步上升。</p></div>
+    </div>
+    <div class="callout">碰撞实验既验证了机制，也指明了失效条件</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="advanced AT 是 4 个攻击者协同、识别第 5 个用户。平均 ASR 35.15%，比 AWA 低 22 个百分点；&#10;但 35.15% 仍然是随机基线 1.05% 的三十多倍，泄露没有消失。" class="slide">
+<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验</span></div>
+  <div class="stage">
+    <h2 class="claim">闭环：advanced AT 下的结果</h2><p class="sub">4 个攻击者协作用各自数据训练，识别第 5 个用户</p>
+<div class="tbl-wrap" style="--fs:.92"><table class="tbl dense">
+      <thead>
+        <tr><th rowspan="2">用户</th><th colspan="2">开销</th><th colspan="2">DF（ASR）</th><th colspan="2">AWF（ASR）</th><th colspan="2">Var-CNN（ASR）</th></tr>
+        <tr><th>AWA</th><th>ALERT</th><th>AWA</th><th>ALERT</th><th>AWA</th><th>ALERT</th><th>AWA</th><th>ALERT</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>A</td><td>21.80%</td><td class="hl">20.13%</td><td>61.44%</td><td class="hl">33.83%</td><td>37.28%</td><td class="hl">17.24%</td><td>34.18%</td><td class="hl">19.12%</td></tr>
+        <tr><td>B</td><td>21.19%</td><td class="hl">20.67%</td><td>52.46%</td><td class="hl">32.09%</td><td>32.98%</td><td class="hl">14.53%</td><td>30.97%</td><td class="hl">20.53%</td></tr>
+        <tr><td>C</td><td>21.94%</td><td class="hl">19.99%</td><td>59.42%</td><td class="hl">38.52%</td><td>38.19%</td><td class="hl">16.93%</td><td>38.22%</td><td class="hl">20.08%</td></tr>
+        <tr><td>D</td><td>19.94%</td><td class="hl">20.34%</td><td>54.97%</td><td class="hl">33.98%</td><td>35.63%</td><td class="hl">14.99%</td><td>44.03%</td><td class="hl">15.33%</td></tr>
+        <tr><td>E</td><td>20.96%</td><td class="hl">20.17%</td><td>57.54%</td><td class="hl">37.32%</td><td>37.22%</td><td class="hl">18.16%</td><td>37.88%</td><td class="hl">23.21%</td></tr>
+        <tr class="hl"><td>平均</td><td>21.17%</td><td>20.26%</td><td>57.17%</td><td>35.15%</td><td>36.26%</td><td>16.37%</td><td>37.06%</td><td>19.65%</td></tr>
+      </tbody></table></div>
+    <p class="src">平均 ASR：DF 35.15%、AWF 16.37%、Var-CNN 19.65%；AWA 对应为 57.17%、36.26%、37.06%。开销：ALERT 20.26%，AWA 21.17%。数据来源：论文表 III。</p>
+    <div class="callout">35.15% 仍远高于随机猜测的 1.05%，协同攻击下泄露并未消除</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="开环先判断是不是监控网站，再看 TPR/FPR。ALERT 把 DF 的 TPR 从 91.8% 压到 37.5%，但 FPR 升到 43.7%；&#10;Var-CNN 那组是 12.6% / 0.5%。表里只有一个工作点。" class="slide">
+<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验</span></div>
+  <div class="stage">
+    <h2 class="claim">开环：监控与未监控并存</h2><p class="sub">攻击者先判断是否监控，再识别具体网站；指标为真阳率（TPR）与假阳率（FPR）</p>
+<div class="tbl-wrap" style="--fs:.95"><table class="tbl dense">
+      <thead>
+        <tr><th rowspan="2">方法</th><th rowspan="2">开销</th><th colspan="2">DF</th><th colspan="2">AWF</th><th colspan="2">Var-CNN</th></tr>
+        <tr><th>TPR</th><th>FPR</th><th>TPR</th><th>FPR</th><th>TPR</th><th>FPR</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>无防御</td><td>0%</td><td>91.80%</td><td>1.69%</td><td>57.97%</td><td>1.36%</td><td>75.87%</td><td>0.85%</td></tr>
+        <tr><td>WTF-PAD</td><td>64.00%</td><td>52.94%</td><td>3.66%</td><td>0.92%</td><td>0.73%</td><td>34.55%</td><td>1.17%</td></tr>
+        <tr><td>Mockingbird</td><td>71.79%</td><td>84.72%</td><td>3.18%</td><td>44.19%</td><td>2.54%</td><td>60.23%</td><td>2.13%</td></tr>
+        <tr class="hl"><td>ALERT</td><td>19.91%</td><td>37.46%</td><td>43.71%</td><td>40.26%</td><td>60.27%</td><td>12.64%</td><td>0.51%</td></tr>
+      </tbody></table></div>
+    <div class="cols c3" style="margin-top:.6rem">
+      <div class="col"><div class="rule"></div><h3>DF 与 AWF</h3><p>DF：TPR 37.46%，FPR 43.71%；AWF：40.26% / 60.27%。</p></div>
+      <div class="col"><div class="rule"></div><h3>Var-CNN</h3><p>12.64% / 0.51%，误报最低。</p></div>
+      <div class="col accent"><div class="rule"></div><h3>只报了一个工作点</h3><p>表 IV 只给出一组 TPR/FPR，未报告固定 FPR 下的 TPR。</p></div>
+    </div>
+    <p class="src">TPR（True Positive Rate，真阳率）：监控流量被正确识别的比例；FPR（False Positive Rate，假阳率）：未监控流量被误判为监控的比例。数据来源：论文表 IV。</p>
+    <div class="callout">开环收益一部分来自 TPR 下降，另一部分来自 FPR 上升</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="PR 曲线看报警准不准，ROC 看分不分得开。ALERT 在两条曲线上都最差，&#10;但曲线是扫阈值得到的，表 IV 只报了其中一个阈值。" class="slide">
+<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验</span></div>
+  <div class="stage">
+    <h2 class="claim">开环的 PR 与 ROC 曲线</h2><p class="sub">PR（Precision-Recall）与 ROC（Receiver Operating Characteristic）曲线整体下移</p>
+<div class="split media">
+      <div class="fig fit"><div class="frame" style="--ar:1.5395"><img src="assets/fig7.png" alt=""></div><div class="cap">图 6 / 图 7  PR 与 ROC 曲线（原文 Fig. 6、Fig. 7）</div></div>
+      <div class="frows">
+        <div class="frow"><div class="k">① PR 曲线</div><div class="v">ALERT 位于最下方，Precision 随 Recall 上升快速下降。</div></div>
+        <div class="frow"><div class="k">② ROC 曲线</div><div class="v">ALERT 最靠近对角线。</div></div>
+        <div class="frow"><div class="k">③ 阈值与工作点</div><div class="v">曲线由阈值扫描得到，但表 IV 只报告一个阈值；攻击者可自行选择工作点。</div></div>
+      </div>
+    </div>
+    
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="图 8 是敏感位置，图 9 是 t-SNE。作者用它们说明扰动有效、不同用户分布不同；&#10;但 t-SNE 只保局部，不能单独证明高维可分，也不能证明 AT 学不会。" class="slide">
+<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验</span></div>
+  <div class="stage">
+    <h2 class="claim">可解释性分析</h2><p class="sub">热图给出敏感位置，t-SNE 给出分布差异</p>
+<div class="split media">
+      <div class="frows">
+        <div class="frow"><div class="k">① 敏感位置</div><div class="v">图 8 给出 burst 序列前 300 维的敏感度；颜色越深，在该位置插包对分类器影响越大。</div></div>
+        <div class="frow"><div class="k">② 分布差异</div><div class="v">图 9 用 t-SNE（t-distributed Stochastic Neighbor Embedding）将高维特征映射到二维：原始数据（蓝）与用户 A（橙）、用户 B（绿）分离。</div></div>
+        <div class="frow"><div class="k">③ 作者解读</div><div class="v">扰动有效，且不同用户的扰动分布不同，因此 AT 难以泛化。</div></div>
+      </div>
+      <div class="fig center"><div class="frame" style="--ar:0.8994;--fh:50vh"><img src="assets/fig89.png" alt=""></div><div class="cap">图 8 / 图 9  敏感度热图与 t-SNE（原文 Fig. 8、Fig. 9）</div></div>
+    </div>
+    <p class="src">注：图 8 仅展示前 300 维；图 9 为 t-SNE 二维投影，邻域参数会影响簇间距离。</p>
+    
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="威胁模型是灰盒：攻击者知道防御存在，也能用同一个 PT 采扰动样本，&#10;但拿不到受害者的 z、生成器分配和模仿对象。" class="slide">
+<div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">讨论</span></div>
+  <div class="stage">
+    <h2 class="claim">威胁模型：攻击者掌握什么</h2><p class="sub">论文假设攻击者知道防御存在，但拿不到受害者的扰动实例</p>
+<div class="tbl-wrap"><table class="tbl">
+      <colgroup><col style="width:16%"><col style="width:84%"></colgroup>
+      <thead><tr><th>维度</th><th>论文设定</th></tr></thead>
+      <tbody>
+        <tr><td>位置</td><td>用户与入口节点之间的链路；被动窃听，不解密、不改包</td></tr>
+        <tr><td>数据</td><td>可伪装成用户采集 trace；可用同一 PT（pluggable transport，可插拔传输）采集扰动样本（脚注 3）</td></tr>
+        <tr><td>训练</td><td>可使用 simple AT 或 advanced AT；多个攻击者可协同</td></tr>
+        <tr><td>防御知识</td><td>知道防御已部署，但不知道受害者的 z、生成器分配与模仿对象</td></tr>
+        <tr><td>分类器</td><td>防御方不知道攻击者模型；攻击者可自行选择 DF / AWF / Var-CNN</td></tr>
+      </tbody></table></div>
+    <div class="callout">这是一个“知道防御、能采样、但拿不到受害者实例”的灰盒设定</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="这一页标边界。抗 simple AT 是闭环 5 用户；抗 advanced AT 是 4 个攻击者；开环实验没有 AT；&#10;可解释性是热图加 t-SNE，没有高维定量验证。引用时要带上这些条件。" class="slide">
+<div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">讨论</span></div>
+  <div class="stage">
+    <h2 class="claim">结论的适用边界</h2><p class="sub">论文的结论成立，但覆盖范围小于摘要给人的印象</p>
+<div class="tbl-wrap"><table class="tbl">
+      <colgroup><col style="width:20%"><col style="width:36%"><col style="width:44%"></colgroup>
+      <thead><tr><th>结论</th><th>论文覆盖</th><th>尚未覆盖</th></tr></thead>
+      <tbody>
+        <tr><td>抗 simple AT</td><td>闭环，5 个用户</td><td>—</td></tr>
+        <tr><td>抗 advanced AT</td><td>闭环，4 个攻击者 + 1 个受害者</td><td>更多攻击者；攻击者自行采样大量模仿配置（profile）</td></tr>
+        <tr><td>开环可用</td><td>普通 DF / AWF / Var-CNN</td><td>开环 + AT</td></tr>
+        <tr><td>可解释性</td><td>敏感度热图与 t-SNE</td><td>高维空间中的定量验证</td></tr>
+      </tbody></table></div>
+    <div class="callout">“抗 AT”目前只对应“抗 4 个用户的 AT”，尚未覆盖会针对防御调整策略的攻击者</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="小结三点：问题、方法、结果。保留一点：抗 AT 的证据只覆盖 5 个用户，开环没测 AT，35.15% 还远高于随机基线。&#10;核心贡献是同时解决 trace 依赖和 AT 失效两个问题。" class="slide">
+<div class="banner"><span class="num">5</span><span class="slash"></span><span class="sec">TAKEAWAYS</span><span class="zh">小结</span></div>
+  <div class="stage">
+    <h2 class="claim">小结</h2><p class="sub">三点结论，一点保留</p>
+<div class="cols c3">
+      <div class="col"><div class="rule"></div><div class="label">① 问题</div><h3>三项要求</h3><p>AE 防御要可部署，需同时满足轨迹无关、抗 AT、可扩展开环。</p></div>
+      <div class="col"><div class="rule"></div><div class="label">② 方法</div><h3>UP + 随机模仿</h3><p>UP + 随机网站模仿 + 三项损失；DF 作替代模型，在线只依赖噪声。</p></div>
+      <div class="col accent"><div class="rule"></div><div class="label">③ 结果</div><h3>三个数字</h3><p>闭环 DF 12.68%（开销 20.13%）；advanced AT 35.15%；开环 TPR 37.46% / FPR 43.71%。</p></div>
+    </div>
+    <div class="mini muted" style="margin-top:.8rem"><div class="label">保留</div><p>抗 AT 的证据只覆盖 5 个用户；开环实验未包含 AT；35.15% 仍远高于 1.05% 的随机基线。</p></div>
+    <div class="callout">核心贡献是同时解决“扰动依赖 trace”与“AT 使扰动失效”两个问题，而非证明防御不可攻破</div>
+  </div>
+  <div class="foot"><span>Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</span></div>
+</section>
+<section data-notes="谢谢，欢迎讨论。" class="slide thanks">
+<div class="banner"><span class="slash"></span></div>
+  <div class="stage">
+    <h1>谢谢</h1>
+    <p class="sub plain">欢迎讨论</p>
+    <div class="hr"></div>
+    <p class="src">Trace-agnostic and Adversarial Training-resilient Website Fingerprinting Defense (Qiao et al., INFOCOM 2024)</p>
+  </div>
+</section>
+</div>
+<div class="hot l" id="hotL"></div>
+<div class="hot r" id="hotR"></div>
+<div id="prog"></div>
+<div id="hud"><div id="dots"></div><span id="counter"></span></div>
+<div id="notes"></div>
+<div id="ov"><div class="ovh">总览 · 按 O 或 Esc 关闭</div></div>
+<script>
+
+/* =====================================================================
+   幻灯片控制器
+   ---------------------------------------------------------------------
+   和站点首页那份同一套约定：只有一个状态变量 idx，键盘 / 点击 / 触摸 /
+   滚轮 / 总览 五个入口全部收敛到 go(n)，避免多处各自维护状态导致不同步。
+   在首页的基础上多了两个：N 开关备注，O 开关总览。
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dotsBox = document.getElementById('dots');
+  var counter = document.getElementById('counter');
+  var prog    = document.getElementById('prog');
+  var total   = slides.length;
+  var idx     = 0;
+
+  /* 生成进度点，点击可直达 */
+  slides.forEach(function (_, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', '第 ' + (i + 1) + ' 页');
+    b.addEventListener('click', function () { go(i); });
+    dotsBox.appendChild(b);
+  });
+  var dots = Array.prototype.slice.call(dotsBox.children);
+
+  /* 总览：把每页标题抽出来做成一张卡片 */
+  var ov = document.getElementById('ov');
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  slides.forEach(function (s, i) {
+    var h = s.querySelector('.claim, h1');
+    var label = s.querySelector('.banner .sec');
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = '<span class="n">' + String(i + 1).padStart(2, '0') + '</span>' +
+                  (h ? h.textContent : (label ? label.textContent : ''));
+    b.addEventListener('click', function () { go(i); toggleOv(false); });
+    grid.appendChild(b);
+  });
+  ov.appendChild(grid);
+
+  /**
+   * 跳转到第 n 页
+   * @param {number} n 目标下标，越界自动夹到 [0, total-1]
+   */
+  function go(n) {
+    idx = Math.max(0, Math.min(total - 1, n));
+    slides.forEach(function (s, i) { s.classList.toggle('active', i === idx); });
+    dots.forEach(function (d, i) { d.classList.toggle('on', i === idx); });
+    counter.textContent = (idx + 1) + ' / ' + total;
+    prog.style.width = (total <= 1 ? 100 : (idx / (total - 1)) * 100) + '%';
+    var nt = document.getElementById('notes');
+    var text = slides[idx].getAttribute('data-notes') || '';
+    nt.innerHTML = text ? '<div class="nt">讲稿</div>' + text : '<div class="nt">（本页没有讲稿）</div>';
+    // 地址栏跟着页码走，方便直接甩一个「第 14 页」的链接给别人
+    try { history.replaceState(null, '', '#' + (idx + 1)); } catch (e) { /* file:// 下可能被拒 */ }
+    // 移动端是长文档滚动模式，换页后需要把视口拉回顶部
+    if (window.innerWidth <= 720) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function next() { go(idx + 1); }
+  function prev() { go(idx - 1); }
+  function toggleOv(on) {
+    var show = (on === undefined) ? !document.body.classList.contains('show-ov') : on;
+    document.body.classList.toggle('show-ov', show);
+  }
+
+  /* 键盘：方向键 / 空格 / PgUp / PgDn / Home / End / 数字键直达 / O 总览 / N 备注 / F 全屏 */
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.body.classList.contains('show-ov') && e.key !== 'o' && e.key !== 'O' && e.key !== 'Escape') return;
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': case 'Enter':
+        e.preventDefault(); next(); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp': case 'Backspace':
+        e.preventDefault(); prev(); break;
+      case 'Home': e.preventDefault(); go(0); break;
+      case 'End':  e.preventDefault(); go(total - 1); break;
+      case 'o': case 'O': case 'Escape': e.preventDefault(); toggleOv(); break;
+      case 'n': case 'N':
+        e.preventDefault(); document.body.classList.toggle('show-notes'); break;
+      case 'f': case 'F':
+        e.preventDefault();
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        break;
+      default:
+        if (/^[1-9]$/.test(e.key)) { e.preventDefault(); go(parseInt(e.key, 10) - 1); }
+    }
+  });
+
+  document.getElementById('hotL').addEventListener('click', prev);
+  document.getElementById('hotR').addEventListener('click', next);
+
+  /* 触摸滑动：只认「横向为主且足够长」的滑动，避免和纵向滚动冲突 */
+  var tx = 0, ty = 0;
+  document.addEventListener('touchstart', function (e) {
+    tx = e.changedTouches[0].clientX;
+    ty = e.changedTouches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    var dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) next(); else prev();
+    }
+  }, { passive: true });
+
+  /* 滚轮翻页：桌面端启用，带 620ms 节流防止一次滑动跳多页 */
+  var wheelLock = false;
+  document.addEventListener('wheel', function (e) {
+    if (window.innerWidth <= 720) return;   // 移动端保留原生滚动
+    if (document.body.classList.contains('show-ov')) return;
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 12) return;
+    wheelLock = true;
+    setTimeout(function () { wheelLock = false; }, 620);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  /* 打开时先看地址栏的 #N，没有就从头开始 */
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+
+</script>
+</body>
+</html>
