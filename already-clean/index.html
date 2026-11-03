@@ -599,45 +599,44 @@ footer.foot{font-size:clamp(.42rem,.7vw,.56rem);}
 </div>
 </section>
 
-<section data-notes="这一页先把结论说清楚，避免把论文读成‘超位置被推翻了’。&#10;它真正做的是把超位置从默认解释降成需要证明的一种机制。&#10;旧故事是容量不够、无关特征任意叠加；新故事是相关功能沿回路递归生长。&#10;现在的位置在两者之间：经典案例被重读，但机制还缺训练轨迹和全模型抽样。" class="slide">
+<section data-notes="先不提‘超位置’这些词，先看一个具体问题。&#10;同一个神经元，对猫脸和车头都给高分。直觉上它像在管两件不相关的事。&#10;但先别下结论：也许猫和车共享一个我们没注意的形状。&#10;这篇论文争的就是这个差别：它是任意混合，还是我们没看懂。" class="slide">
 <div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
 <div class="stage">
-<h2 class="claim">一句话：不是超位置被推翻，而是它不再是唯一解释</h2><p class="sub">论文真正提供的是一套可被反驳的研究纲领，不是一个已经封箱的结论</p>
-<div class="cols c3">
- <div class="col"><div class="rule"></div><div class="label">01 / 旧故事</div><h3>容量不够 → 任意叠加</h3><p>维度不够，网络把无关特征放进共享方向；单个神经元因此不可读，必须先训练 SAE 分解。</p></div>
- <div class="col accent"><div class="rule"></div><div class="label">02 / 新故事</div><h3>相关功能 → 递归生长</h3><p>神经元沿已有回路扩展出相关分支；多义来自“树枝”，原生神经元可以直接研究。</p></div>
- <div class="col"><div class="rule"></div><div class="label">03 / 现在的位置</div><h3>强假说，不是定论</h3><p>经典案例被重新解释，但核心机制仍缺训练轨迹证据与全模型抽样。独立检验也没有复刻 90%。</p></div>
+<h2 class="claim">先从一个具体问题开始：同一个神经元，为什么会同时响应猫和车？</h2><p class="sub">先不谈“超位置”，把神经元想成一个会打分的单元</p>
+<div class="fig fit" style="width:min(100%,880px);margin:0 auto"><div class="frame" style="--ar:2"><img src="assets/cat-car.png" alt="同一个神经元对猫和车都响应"></div><div class="cap">同一个神经元（4e:55）对猫脸和车头都给出高分。为什么？</div></div>
+<div class="cols c3" style="margin-top:.45rem">
+ <div class="mini"><div class="label">01 / 神经元</div><h4>一个打分单元</h4><p>输入一张图或一段文本，它输出一个数。数越大，说明它越“兴奋”。</p></div>
+ <div class="mini accent"><div class="label">02 / 现象</div><h4>猫和车都让它高分</h4><p>如果只看输入，它像在同时管两件不相关的事。这就是“多义”的直觉。</p></div>
+ <div class="mini"><div class="label">03 / 问题</div><h4>它到底在检测什么？</h4><p>是“猫或车”，还是猫和车共享的一个形状？先别急着下结论。</p></div>
 </div>
-<div class="fig fit" style="margin-top:.2rem"><div class="frame" style="--ar:3.95"><img src="assets/packing-vs-generalization.png" alt="同样 32 个东西：任意打包与泛化分组的对照"></div><div class="cap">图 1  同样 32 个东西：左边是任意打包，右边是泛化分组（原文概念图）</div></div>
-<div class="callout">Clean 在这里指“可读”，不是“安全”或“无瑕疵”。多义性到底来自容量不足的任意叠加，还是训练中长出的功能泛化？</div>
+<div class="callout">如果它真的是“猫或车”，那就是多义；如果猫和车共享一个你没注意的形状，那可能不是。这篇论文想讨论的，就是这个差别。</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
 
-<section data-notes="听众如果没读过论文，先把四个词说清楚。&#10;神经元是网络里的数值单元；特征是被表征的属性或区分，不一定是名词。&#10;多义是观察层面的描述；超位置是解释多义的一种机制，标准定义强调特征数超过维度，不是‘必须无关’。&#10;下面两张图都是语言模型里的真实神经元：一个从 Titanic 向船、海难、蒸汽机辐射；另一个看似任意混合，其实是‘不要句号’。" class="slide">
+<section data-notes="现在再补四个词。&#10;神经元是打分单元；特征是它在判断什么；多义是看起来管好几件事；超位置是网络把多个特征挤进同一组方向。&#10;用抽屉的比喻：只有 3 个抽屉，却要放 9 类东西。&#10;下面两张图都是真实神经元：一个从 Titanic 向外扩散；一个看似杂乱，其实在说‘别在这里放句号’。" class="slide">
 <div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
 <div class="stage">
 <h2 class="claim">四个词，先有个概念</h2><p class="sub">神经元、特征、多义、超位置；先分清楚，后面的争论才不会混</p>
 <div class="cols c4">
- <div class="col"><div class="rule"></div><div class="label">01 / NEURON</div><h3>神经元</h3><p>网络中的一个数值单元。本文主要讨论视觉通道和 Transformer 的 MLP 神经元，不是生物神经元。</p></div>
- <div class="col accent"><div class="rule"></div><div class="label">02 / FEATURE</div><h3>特征</h3><p>网络内部被表征的属性、模式或区分。它不一定是人类名词，也可能是动作、关系或“正极对负极”的判断。</p></div>
- <div class="col"><div class="rule"></div><div class="label">03 / POLYSEMANTIC</div><h3>多义神经元</h3><p>看起来承担多个互不相关任务的神经元。“看起来”很重要：它依赖解释者的框架和工具。</p></div>
- <div class="col"><div class="rule"></div><div class="label">04 / SUPERPOSITION</div><h3>超位置</h3><p>特征数量超过表示维度时，多个特征共享方向。标准定义强调“维度不够”，不是“只有无关特征才叫超位置”。</p></div>
+ <div class="col"><div class="rule"></div><div class="label">01 / NEURON</div><h3>神经元</h3><p>网络中的一个打分单元。输入一张图或一段文本，它输出一个数；不是生物神经元。</p></div>
+ <div class="col accent"><div class="rule"></div><div class="label">02 / FEATURE</div><h3>特征</h3><p>它到底在判断什么。可能是一个形状、一个词、一种语气，或“正极对负极”的区分。</p></div>
+ <div class="col"><div class="rule"></div><div class="label">03 / POLYSEMANTIC</div><h3>多义神经元</h3><p>同一个神经元看起来在管好几件不相关的事。注意：这是观察，不一定是机制。</p></div>
+ <div class="col"><div class="rule"></div><div class="label">04 / SUPERPOSITION</div><h3>超位置</h3><p>网络把多个特征挤进同一组方向。像只有 3 个抽屉，却要放 9 类东西。</p></div>
 </div>
 <div class="fig-row" style="margin-top:.35rem">
- <div class="fig fit"><div class="frame" style="--ar:2.75"><img src="assets/titanic.png" alt="Titanic 神经元的强激活向外辐射"></div><div class="cap">图 2  Titanic 神经元的强激活：从 Titanic 向外辐射到船、海难、蒸汽机（原文）</div></div>
- <div class="fig fit"><div class="frame" style="--ar:2.27"><img src="assets/dont-say-dot.png" alt="Don't Say Dot 神经元"></div><div class="cap">图 3  看似“任意混合”的神经元，其实在说“别在这里放句号”（原文）</div></div>
+ <div class="fig fit"><div class="frame" style="--ar:2.75"><img src="assets/titanic.png" alt="Titanic 神经元的强激活向外辐射"></div><div class="cap">一个神经元的强激活可以围着一个概念向外扩散（原文）</div></div>
+ <div class="fig fit"><div class="frame" style="--ar:2.27"><img src="assets/dont-say-dot.png" alt="Don't Say Dot 神经元"></div><div class="cap">看似杂乱的神经元，可能只在做一件小事：别在这里放句号（原文）</div></div>
 </div>
-<div class="quote"><div class="en">Polysemanticity is often more a claim about the observer than the neuron.</div><div class="zh">多义性常常更像是关于观察者的判断，而不是关于神经元的判断。</div></div>
-<div class="callout">如果多义只是观察者暂时没找到共同点，直接研究原网络就有意义；如果它真是任意叠加，先分解才合理。整场争论卡在这个分岔口。</div>
+<div class="callout">所以“多义”不是骂网络乱，而是一个需要解释的现象：它到底在管几件事？</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
 
-<section data-notes="旧路线不是偷懒。如果表示真的不够用，先分解再研究是合理选择。&#10;SAE 是一个额外训练的模型，用少量活跃单元重建原激活，希望得到更单义的特征字典。&#10;它的软肋是默认‘分解出的特征’比‘原生神经元’更基本。&#10;如果网络本来有可读结构，分解可能把一条完整回路切碎。" class="slide">
+<section data-notes="如果表示空间真的不够用，网络会怎么做？&#10;一个常见猜测是：把多个特征挤进同一组方向，让它们共享维度；这就是超位置的直觉。&#10;如果这个猜测成立，研究前就得先把混合拆开。SAE 就是干这个的：用少量活跃单元重建原激活。&#10;但它的软肋是默认‘分解出的特征’比原生神经元更基本。" class="slide">
 <div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
 <div class="stage">
-<h2 class="claim">旧路线不是偷懒：如果表示真的不够用，先分解是合理选择</h2><p class="sub">容量约束 → 单元不可读 → 训练 SAE → 在特征层做科学</p>
+<h2 class="claim">如果 9 类东西只能放进 3 个抽屉，网络会怎么做？</h2><p class="sub">一个常见猜测：把多个特征挤进同一组方向；这就是“超位置”的直觉</p>
 <div class="split media">
  <div class="mini" style="border-top:2px solid var(--ink);padding-top:.6em">
   <div class="label">示意 / 容量压缩</div>
@@ -663,29 +662,24 @@ footer.foot{font-size:clamp(.42rem,.7vw,.56rem);}
   <div class="flow" style="--n:3;margin-top:.35rem"><div class="st">网络激活<br><span class="small">混合表示</span></div><div class="st">SAE 重建<br><span class="small">稀疏约束</span></div><div class="st last">特征字典</div></div>
  </div>
 </div>
-<div class="fig fit" style="width:min(100%,580px);margin:.35rem auto 0"><div class="frame" style="--ar:3.16"><img src="assets/sae-added.png" alt="SAE 加进来的特征由已有神经元拼成"></div><div class="cap">原文图：SAE 加进来的“新特征”，其实由已有神经元拼成；它会把一条回路切成多个“特征”。</div></div>
-<div class="callout">这套逻辑默认分解出的特征比原生神经元更基本。如果网络本来可读，分解可能把一条完整的 V 形回路切成“猫特征”和“车特征”。</div>
+<div class="fig fit" style="width:min(100%,580px);margin:.35rem auto 0"><div class="frame" style="--ar:3.16"><img src="assets/sae-added.png" alt="SAE 加进来的特征由已有神经元拼成"></div><div class="cap">SAE 想把混合激活拆成更“单义”的特征；但它也可能把一条回路切成多个特征（原文，报告重排）。</div></div>
+<div class="callout">如果这个猜测成立，研究前就得先把混合拆开；SAE 就是这样成为主流的。它的软肋是默认“分解出的特征”比原生神经元更基本。</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
 
-<section data-notes="这五站都有当时的理由：图像乱、经典案例硬、理论优雅、工具可扩展。&#10;2017 特征可视化；2020 Zoom In 把猫车神经元和车入狗电路写成经典证据；2022 Toy Models 把‘特征多于维度’形式化。&#10;2023 SAE 成为主流，自动解释项目给 GPT-2 XL 写解释，但只有约 1.7% 达到最宽松标准。&#10;2026 这篇挑战回看这些证据，提出递归泛化。" class="slide">
-<div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
+<section data-notes="现在再给主张：不是超位置被推翻，而是它不再是唯一解释。&#10;旧故事是容量不够、无关特征任意叠加；新故事是相关功能沿回路递归生长。&#10;论文倾向后者，但经典案例被重读不等于机制已经证明。&#10;2017 特征可视化、2020 Zoom In、2022 Toy Models、2023 SAE、2026 这篇，是这条线的简史。" class="slide">
+<div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">THE PAPER</span><span class="zh">论文</span></div>
 <div class="stage">
-<h2 class="claim">过去十年，领域从“看神经元”退到“先拆网络”</h2><p class="sub">这不是一次轻率的转向；每一站都有当时的理由</p>
-<div class="timeline">
- <div class="item"><div class="d">2017</div><div class="t"><b>特征可视化</b>：用梯度上升生成“让神经元兴奋的图”。早期结果模糊，加入变换鲁棒性后才变清晰。</div></div>
- <div class="item"><div class="d">2020</div><div class="t"><b>Zoom In</b>：猫车神经元、车入狗电路成为多义性与超位置的经典证据；神经元被怀疑不是正确单位。</div></div>
- <div class="item"><div class="d">2022</div><div class="t"><b>Toy Models</b>：把“特征多于维度”形式化；容量紧张时，特征会叠到共享方向。</div></div>
- <div class="item"><div class="d">2023</div><div class="t"><b>SAE 上场</b>：稀疏字典学习成为主流；GPT-2 XL 的自动解释只有约 1.7% 达到可解释标准。</div></div>
- <div class="item"><div class="d">2026</div><div class="t"><b>这篇挑战</b>：回看经典案例，提出“递归泛化”；多义可能来自相关功能的树枝式生长。</div></div>
+<h2 class="claim">这篇论文的主张：不是超位置被推翻，而是它不再是唯一解释</h2><p class="sub">现在你已经知道超位置是什么；论文说，它可能不是默认答案</p>
+<div class="cols c3">
+ <div class="col"><div class="rule"></div><div class="label">01 / 旧故事</div><h3>容量不够 → 任意叠加</h3><p>维度不够，网络把无关特征放进共享方向；单个神经元因此不可读，必须先训练 SAE 分解。</p></div>
+ <div class="col accent"><div class="rule"></div><div class="label">02 / 新故事</div><h3>相关功能 → 递归生长</h3><p>神经元沿已有回路扩展出相关分支；多义来自“树枝”，原生神经元可以直接研究。</p></div>
+ <div class="col"><div class="rule"></div><div class="label">03 / 现在的位置</div><h3>强假说，不是定论</h3><p>经典案例被重新解释，但核心机制仍缺训练轨迹证据与全模型抽样。独立检验也没有复刻 90%。</p></div>
 </div>
-<div class="fig-row" style="margin-top:.35rem">
- <div class="fig fit"><div class="frame" style="--ar:2.0"><img src="assets/microscope-pair.jpg" alt="2017 与 2026 的特征可视化对比"></div><div class="cap">图 4  同一批神经元：2017 默认设置 vs 2026 调参后（原文，报告重排）</div></div>
- <div class="fig fit"><div class="frame" style="--ar:2.64"><img src="assets/car-circuit-original.png" alt="车入狗电路"></div><div class="cap">图 5  2020 年的车入狗电路：车被藏进狗神经元（原文）</div></div>
-</div>
-<div class="quote"><div class="en">The field began with the first approach and fell back to the second because neural networks seemed to be tangled knots.</div><div class="zh">领域从“直接看网络”开始，后来退回“先分解”，因为网络看起来像一团乱麻。</div></div>
-<div class="callout">如果 2017–2020 年的“乱”主要来自架构和工具，整条路线的必要性就要重算；如果“乱”是网络的本性，SAE 仍然是必需的中介。</div>
+<div class="fig fit" style="margin-top:.2rem"><div class="frame" style="--ar:3.95"><img src="assets/packing-vs-generalization.png" alt="同样 32 个东西：任意打包与泛化分组的对照"></div><div class="cap">图 1  同样 32 个东西：左边是任意打包，右边是泛化分组（原文概念图）</div></div>
+<p class="src" style="text-align:center;margin-top:.15rem">2017 特征可视化 → 2020 Zoom In → 2022 Toy Models → 2023 SAE → 2026 这篇</p>
+<div class="callout">Clean 在这里指“可读”，不是“安全”或“无瑕疵”。多义性到底来自容量不足的任意叠加，还是训练中长出的功能泛化？</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
@@ -712,14 +706,14 @@ footer.foot{font-size:clamp(.42rem,.7vw,.56rem);}
 <div class="stage">
 <h2 class="claim">经典“车入狗电路”：看到的可能是共享姿态，不是高维藏匿</h2><p class="sub">同一组权重，换一种可视化，故事从“藏匿”变成“复用”</p>
 <div class="split media">
- <div class="fig fit"><div class="frame" style="--ar:2.64"><img src="assets/car-circuit-original.png" alt="车入狗电路：自由可视化与车路径引导可视化"></div><div class="cap">图 7  上：自由可视化；下：用车路径引导。两只是车，两只共享车与狗的姿态（原文）</div></div>
+ <div class="fig fit"><div class="frame" style="--ar:2.465"><img src="assets/car-circuit-complete.jpg" alt="车入狗电路：自由可视化与车路径引导可视化"></div><div class="cap">图 7  上：自由可视化；下：用车路径引导。两只是车，两只共享车与狗的姿态（原文，报告重排）</div></div>
  <div class="stack">
   <div class="mini"><h4>2019 读法</h4><p>车被藏进一组狗神经元，像放进一个高维储物格，下游再取出来。</p></div>
   <div class="mini accent"><h4>2026 重看</h4><p>用自然车图像路径引导后，原本的“狗”里出现了车；另一些同时响应车与狗的朝向。网络里有上百个泛化姿态神经元。</p></div>
   <div class="mini muted"><h4>工具也会骗人</h4><p>自由特征可视化在深层容易 reward hack（优化钻指标的空子）：InceptionV1 里狗很多，优化很容易掉进狗这条路。</p></div>
  </div>
 </div>
-<div class="fig fit" style="width:min(100%,540px);margin:.35rem auto 0"><div class="frame" style="--ar:1.96"><img src="assets/car-path.png" alt="跑车沿最后五层逐渐分化"></div><div class="cap">原文图：一辆跑车沿最后五层逐渐分化；每列是下一步贡献最大的神经元。</div></div>
+<div class="fig fit" style="width:min(100%,530px);margin:.35rem auto 0"><div class="frame" style="--ar:1.96"><img src="assets/car-path.png" alt="跑车沿最后五层逐渐分化"></div><div class="cap">原文图：一辆跑车沿最后五层逐渐分化；每列是下一步贡献最大的神经元。</div></div>
 <div class="callout">这动摇了“任意混合”的经典证据，但不自动证明递归泛化。下一张才讲作者用来替代超位置的机制。</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
@@ -830,7 +824,7 @@ car →  sports car  →  convertible</div>
  <div class="stack">
   <div class="stats" style="justify-content:flex-start;gap:1.6rem;margin-bottom:.4rem"><div class="stat"><div class="n">4</div><div class="l">子痫前期诊断 hub</div></div><div class="stat"><div class="n">8</div><div class="l">Santa 负极神经元</div></div><div class="stat"><div class="n">76%</div><div class="l">去掉 20 个显式圣诞神经元后</div></div></div>
   <div class="mini"><h4>4 个神经元 = 诊断 hub</h4><p>去掉这 4 个，模型改问“瘙痒”——另一种妊娠肝病的线索，像退到了下一个猜测。</p></div>
-  <div class="mini accent"><h4>8 个负极 = 关键门控</h4><p>标准 top-k 解释只看正极，会把这些神经元标成“首都城市”之类，完全错过它们在压制 / 门控 Santa 的作用。</p></div>
+  <div class="mini accent"><h4>8 个负极 = 关键门控</h4><p>只看最强激活的解释（top-k）会把这些神经元标成“首都城市”之类，完全错过它们在压制 / 门控 Santa 的作用。</p></div>
   <div class="mini muted"><h4>解释的单位不是名词</h4><p>显式标成 Christmas / Santa 的 20 个神经元反而不是关键；真正起作用的，是电路里被谁读、又被谁门控。</p></div>
  </div>
  <div class="fig fit"><div class="frame" style="--ar:2.10"><img src="assets/medical-circuit.png" alt="子痫前期诊断 circuit：features 与 neurons"></div><div class="cap">图 13  同一个 circuit，在 features 与 neurons 里各是什么样（原文）</div></div>
@@ -843,7 +837,7 @@ car →  sports car  →  convertible</div>
 <section data-notes="规模证据是 Kimi K3 的钱包例子。&#10;一个 prompt：我捡到一个钱包，里面有 500 美元和失主身份证，没人看见，该怎么办？&#10;论文展示的 neuron-only 归因图把钱包、现金、身份证、失物招领、诚实、归还连起来，据称是首个公开的万亿参数模型归因图。&#10;另一个语言例子是 Miyazaki：拼写碎片汇成一个名字神经元，再连到 Spirited Away。它们都证明可行，不证明已经读懂。" class="slide">
 <div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">THE PAPER</span><span class="zh">论文</span></div>
 <div class="stage">
-<h2 class="claim">万亿参数模型也能读出钱包路径</h2><p class="sub">Kimi K3：一个 prompt，一张 neuron-only 归因图；另一个例子是 Miyazaki</p>
+<h2 class="claim">万亿参数模型也能读出钱包路径</h2><p class="sub">Kimi K3：一个 prompt，一张只用原生神经元的归因图；另一个例子是 Miyazaki</p>
 <div class="stats" style="margin-bottom:.35rem"><div class="stat"><div class="n">1T+</div><div class="l">Kimi K3 参数量级</div></div><div class="stat"><div class="n">1</div><div class="l">个 prompt</div></div><div class="stat"><div class="n">0</div><div class="l">次全模型审计</div></div></div>
 <div class="fig-row">
  <div class="fig fit"><div class="frame" style="--ar:2.54"><img src="assets/wallet.png" alt="Kimi K3 的钱包归因图"></div><div class="cap">图 14  钱包 → 现金 / 身份证 → 失物招领 / 诚实 → 归还（原文）</div></div>
@@ -884,7 +878,7 @@ car →  sports car  →  convertible</div>
   <div class="mini"><h4>盲测最大激活</h4><p>一个 agent 只看解释写句子，再拿回原网络测激活；解释错了，会当场露馅。</p></div>
  </div>
  <div>
-  <div class="fig fit"><div class="frame" style="--ar:2.315"><img src="assets/agent-constitution.png" alt="Agent 按 mechanistic constitution 提出并检验解释"></div><div class="cap">图 17  Agent 按 mechanistic constitution 提出、测试、保留或丢弃解释（原文）</div></div>
+  <div class="fig fit"><div class="frame" style="--ar:2.315"><img src="assets/agent-constitution.png" alt="Agent 按 mechanistic constitution 提出并检验解释"></div><div class="cap">图 17  Agent 按一套解释规范（mechanistic constitution）提出、测试、保留或丢弃解释（原文）</div></div>
   <div class="fig fit" style="margin-top:.35rem"><div class="frame" style="--ar:4.13"><img src="assets/blind-max.png" alt="只看解释写句子，仍能超过语料最大激活"></div><div class="cap">图 18  Agent 2 只看解释写句子，仍能超过语料最大激活（原文）</div></div>
  </div>
 </div>
@@ -937,7 +931,7 @@ car →  sports car  →  convertible</div>
 <h2 class="claim">把主张拆开：证据强度表</h2><p class="sub">有些已被支持，有些还只是合理猜想</p>
 <div class="tbl-wrap"><table class="tbl"><colgroup><col style="width:36%"><col style="width:47%"><col style="width:17%"></colgroup><thead><tr><th>主张</th><th>现有证据</th><th>判断</th></tr></thead><tbody>
 <tr><td class="b">原生神经元是实用的解释与电路单位</td><td>Transluce 的 neuron-basis 电路；小模型消融复现；公开 gallery 自洽</td><td><span class="tl">较稳</span></td></tr>
-<tr><td class="b">Qwen3-32B 约 90% 的 pole 只有一个主功能</td><td>作者初步审计；gallery 非全模型随机抽样，评审是模型判断</td><td><span class="hi">未定</span></td></tr>
+<tr><td class="b">Qwen3-32B 约 90% 的神经元极（pole）只有一个主功能</td><td>作者初步审计；gallery 非全模型随机抽样，评审是模型判断</td><td><span class="hi">未定</span></td></tr>
 <tr><td class="b">递归泛化解释了大多数表观多义性</td><td>有案例与机制直觉；缺训练轨迹上的直接预测与干预</td><td><span class="hi">未定</span></td></tr>
 <tr><td class="b">可以直接读懂前沿闭源大模型</td><td>Kimi K3 的单 prompt 演示；尚无全模型审计或独立复现</td><td><span class="hi">未证明</span></td></tr>
 <tr><td class="b">理解神经元 ≈ 理解整个模型</td><td>概念跳跃；注意力、训练动态、分布外行为都未覆盖</td><td><span class="hi">未证明</span></td></tr>
@@ -951,14 +945,14 @@ car →  sports car  →  convertible</div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
 
-<section data-notes="我的判断分三块。&#10;我接受：经典‘任意混合’叙事不够稳；原生神经元应该回到工具箱；解释能否预测和干预，比听起来是否合理更重要。&#10;我保留：‘相关’不等于‘不是超位置’；终点可读不证明发育机制；90% 是样本判读，不是全模型测量。&#10;下一步：预注册全模型抽样、训练中的受控干预、同一任务上比较 neuron / SAE / probe。" class="slide">
+<section data-notes="我的判断分三块。&#10;我接受：经典‘任意混合’叙事不够稳；原生神经元应该回到工具箱；解释能否预测和干预，比听起来是否合理更重要。&#10;我保留：‘相关’不等于‘不是超位置’；终点可读不证明发育机制；90% 是样本判读，不是全模型测量。&#10;下一步：预注册全模型抽样、训练中的受控干预、同一任务上比较 neuron / SAE / 探针（probe）。" class="slide">
 <div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">CHECKS</span><span class="zh">检验</span></div>
 <div class="stage">
 <h2 class="claim">我的判断：把默认假设变回可检验问题</h2><p class="sub">我接受什么、保留什么、下一步做什么</p>
 <div class="cols c3">
  <div class="col"><div class="rule"></div><div class="label">我接受的</div><h3>经典叙事不够稳</h3><p>工具和架构确实会制造多义性；原生神经元应该回到工具箱；“解释能否预测和干预”比“听起来合理”更重要。</p></div>
  <div class="col accent"><div class="rule"></div><div class="label">我保留的</div><h3>强版本还缺证据</h3><p>“相关”不等于“不是超位置”；终点可读不证明发育机制；90% 是对样本的判读，不是对全模型的测量。</p></div>
- <div class="col"><div class="rule"></div><div class="label">下一步</div><h3>把争论变成实验</h3><p>预注册、全模型随机抽样；在训练中改变数据相关性 / 容量，看功能如何长出来；同一任务上比较 neuron、SAE、probe。</p></div>
+ <div class="col"><div class="rule"></div><div class="label">下一步</div><h3>把争论变成实验</h3><p>预注册、全模型随机抽样；在训练中改变数据相关性 / 容量，看功能如何长出来；同一任务上比较 neuron、SAE、探针（probe）。</p></div>
 </div>
 <div class="fig fit" style="margin-top:.35rem"><div class="frame" style="--ar:3.38"><img src="assets/convnext-atlas.png" alt="ConvNeXt atlas：从全局地图下钻到神经元"></div><div class="cap">图 21  ConvNeXt atlas：从全局地图下钻到单个神经元，再回到问题（原文）</div></div>
 <div class="callout">不必在“网络已经干净”和“网络永远是一团乱麻”之间站队。更值得问的是：在哪个尺度、对哪个读者、用什么检验，它干净到什么程度？</div>
@@ -1012,7 +1006,7 @@ car →  sports car  →  convertible</div>
  <div class="col"><div class="rule"></div><div class="label">对安全</div><h3>有希望，但别保证</h3><p>可解释性有希望，但不能用单个案例替代系统验证；可读、可控、安全是三层问题。</p></div>
 </div>
 <div class="fig fit" style="width:min(100%,760px);margin:.5rem auto 0"><div class="frame" style="--ar:2.11"><img src="assets/city-knot.png" alt="同一座城市与一团结的对照插画"></div><div class="cap">如果网络本来不是一团乱麻，硬去拆解，反而可能把它弄成一团乱麻。</div></div>
-<div class="callout">下一步：全模型随机抽样 · 训练轨迹干预 · 独立复现 · 同一任务上比较 neuron / SAE / probe。</div>
+<div class="callout">下一步：全模型随机抽样 · 训练轨迹干预 · 独立复现 · 同一任务上比较 neuron / SAE / 探针（probe）。</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
