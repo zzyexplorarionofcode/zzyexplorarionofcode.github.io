@@ -602,12 +602,12 @@ footer.foot{font-size:clamp(.42rem,.7vw,.56rem);}
 <section data-notes="先不提‘超位置’这些词，先看一个具体问题。&#10;同一个神经元，对猫脸和车头都给高分。直觉上它像在管两件不相关的事。&#10;但先别下结论：也许猫和车共享一个我们没注意的形状。&#10;这篇论文争的就是这个差别：它是任意混合，还是我们没看懂。" class="slide">
 <div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
 <div class="stage">
-<h2 class="claim">先从一个具体问题开始：同一个神经元，为什么会同时响应猫和车？</h2><p class="sub">先不谈“超位置”，把神经元想成一个会打分的单元</p>
+<h2 class="claim">同一个神经元，为什么会同时响应猫和车？</h2><p class="sub">把一个神经元想成一个会打分的单元：输入一张图，它输出一个数</p>
 <div class="fig fit" style="width:min(100%,880px);margin:0 auto"><div class="frame" style="--ar:2"><img src="assets/cat-car.png" alt="同一个神经元对猫和车都响应"></div><div class="cap">同一个神经元（4e:55）对猫脸和车头都给出高分。为什么？</div></div>
 <div class="cols c3" style="margin-top:.45rem">
  <div class="mini"><div class="label">01 / 神经元</div><h4>一个打分单元</h4><p>输入一张图或一段文本，它输出一个数。数越大，说明它越“兴奋”。</p></div>
  <div class="mini accent"><div class="label">02 / 现象</div><h4>猫和车都让它高分</h4><p>如果只看输入，它像在同时管两件不相关的事。这就是“多义”的直觉。</p></div>
- <div class="mini"><div class="label">03 / 问题</div><h4>它到底在检测什么？</h4><p>是“猫或车”，还是猫和车共享的一个形状？先别急着下结论。</p></div>
+ <div class="mini"><div class="label">03 / 问题</div><h4>它到底在检测什么？</h4><p>可能是“猫或车”，也可能是猫和车共享的一个形状。</p></div>
 </div>
 <div class="callout">如果它真的是“猫或车”，那就是多义；如果猫和车共享一个你没注意的形状，那可能不是。这篇论文想讨论的，就是这个差别。</div>
 </div>
@@ -617,7 +617,7 @@ footer.foot{font-size:clamp(.42rem,.7vw,.56rem);}
 <section data-notes="现在再补四个词。&#10;神经元是打分单元；特征是它在判断什么；多义是看起来管好几件事；超位置是网络把多个特征挤进同一组方向。&#10;用抽屉的比喻：只有 3 个抽屉，却要放 9 类东西。&#10;下面两张图都是真实神经元：一个从 Titanic 向外扩散；一个看似杂乱，其实在说‘别在这里放句号’。" class="slide">
 <div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div>
 <div class="stage">
-<h2 class="claim">四个词，先有个概念</h2><p class="sub">神经元、特征、多义、超位置；先分清楚，后面的争论才不会混</p>
+<h2 class="claim">四个反复出现的词</h2><p class="sub">神经元、特征、多义、超位置；把它们的含义对齐，后面的争论才不会混</p>
 <div class="cols c4">
  <div class="col"><div class="rule"></div><div class="label">01 / NEURON</div><h3>神经元</h3><p>网络中的一个打分单元。输入一张图或一段文本，它输出一个数；不是生物神经元。</p></div>
  <div class="col accent"><div class="rule"></div><div class="label">02 / FEATURE</div><h3>特征</h3><p>它到底在判断什么。可能是一个形状、一个词、一种语气，或“正极对负极”的区分。</p></div>
@@ -671,7 +671,7 @@ footer.foot{font-size:clamp(.42rem,.7vw,.56rem);}
 <section data-notes="现在再给主张：不是超位置被推翻，而是它不再是唯一解释。&#10;旧故事是容量不够、无关特征任意叠加；新故事是相关功能沿回路递归生长。&#10;论文倾向后者，但经典案例被重读不等于机制已经证明。&#10;2017 特征可视化、2020 Zoom In、2022 Toy Models、2023 SAE、2026 这篇，是这条线的简史。" class="slide">
 <div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">THE PAPER</span><span class="zh">论文</span></div>
 <div class="stage">
-<h2 class="claim">这篇论文的主张：不是超位置被推翻，而是它不再是唯一解释</h2><p class="sub">现在你已经知道超位置是什么；论文说，它可能不是默认答案</p>
+<h2 class="claim">这篇论文的主张：不是超位置被推翻，而是它不再是唯一解释</h2><p class="sub">在这个背景下，作者要挑战的是“超位置是默认答案”</p>
 <div class="cols c3">
  <div class="col"><div class="rule"></div><div class="label">01 / 旧故事</div><h3>容量不够 → 任意叠加</h3><p>维度不够，网络把无关特征放进共享方向；单个神经元因此不可读，必须先训练 SAE 分解。</p></div>
  <div class="col accent"><div class="rule"></div><div class="label">02 / 新故事</div><h3>相关功能 → 递归生长</h3><p>神经元沿已有回路扩展出相关分支；多义来自“树枝”，原生神经元可以直接研究。</p></div>
