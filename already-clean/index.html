@@ -736,7 +736,7 @@ car →  sports car  →  convertible</div>
   <div class="frow"><div class="k">04 · 可检验预测</div><div class="v">如果机制成立，训练轨迹里应该看到功能逐步长出来，而不是终点突然出现。</div></div>
  </div>
 </div>
-<div class="fig fit" style="width:min(100%,610px);margin:.35rem auto 0"><div class="frame" style="--ar:3.38"><img src="assets/three-stories.png" alt="三种关于泛化的故事"></div><div class="cap">原文图：三种关于泛化的故事——先记再泛化、边记边泛化、从第一个样本就开始泛化。</div></div>
+<div class="fig fit" style="width:min(100%,600px);margin:.35rem auto 0"><div class="frame" style="--ar:3.333"><img src="assets/three-stories-clean.png" alt="三种关于泛化的故事：先记再泛化、边记边泛化、从第一个样本就泛化"></div><div class="cap">三种关于泛化的故事：先记再泛化、边记边泛化、从第一个样本就泛化。</div></div>
 <div class="callout">多义性可能是一条被压扁的发育史。要证明它，不能只看训练终点，必须看功能在训练中如何长出来。</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
@@ -752,7 +752,7 @@ car →  sports car  →  convertible</div>
 <tr><td class="b">可学习结构</td><td>几乎没有；分组方式接近任意</td><td>有；分支反映训练中形成的组织</td></tr>
 <tr><td class="b">对解释者的含义</td><td>必须先分解，才能研究</td><td>可以顺着原网络的分支读</td></tr>
 </tbody></table></div>
-<div class="fig fit" style="width:min(100%,900px);margin:.3rem auto 0"><div class="frame" style="--ar:3.38"><img src="assets/three-stories.png" alt="三种关于泛化的故事"></div><div class="cap">图 9  三种关于泛化的故事：先记再泛化、边记边泛化、从第一个样本就开始泛化（原文）</div></div>
+<div class="fig fit" style="width:min(100%,900px);margin:.3rem auto 0"><div class="frame" style="--ar:3.95"><img src="assets/packing-vs-generalization.png" alt="任意打包与泛化分组的对照"></div><div class="cap">同样 32 个东西：左边是任意打包，右边是泛化分组（原文概念图）。</div></div>
 <p class="src" style="text-align:center;margin-top:.1rem">论文的猜测是第三种：宽特征从第一个样本就开始赢；这一步还缺训练轨迹证据。</p>
 <div class="callout">现实很可能同时存在。批评者指出：相关特征也可以处于超位置；标准定义是“特征数多于维度”，不是“只有无关特征才叫超位置”。</div>
 </div>
@@ -799,16 +799,18 @@ car →  sports car  →  convertible</div>
 <div class="stage">
 <h2 class="claim">Qwen3-32B：90% 单主功能，样本非全模型</h2><p class="sub">作者初步审计：90% 一个主功能，7% 两个相关功能，2–4% 未解释</p>
 <div class="stats" style="margin-bottom:.3rem"><div class="stat"><div class="n">90%</div><div class="l">一个主功能，常带小的相关分支</div></div><div class="stat"><div class="n">7%</div><div class="l">两个相关功能</div></div><div class="stat"><div class="n">2–4%</div><div class="l">尚未解释</div></div></div>
-<div class="split table">
+<div style="display:flex;height:22px;border:1px solid var(--hair);margin:.15rem 0 .2rem;overflow:hidden"><div style="width:90%;background:var(--banner);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center">90% 一个主功能</div><div style="width:7%;background:var(--accent)"></div><div style="width:3%;background:#222"></div></div>
+<div class="small" style="margin-bottom:.9rem">7% 两个相关功能 · 3% 未解释</div>
+<div class="split table" style="margin-top:.7rem">
  <div class="tbl-wrap"><table class="tbl"><colgroup><col style="width:58%"><col style="width:42%"></colgroup><thead><tr><th>公开数据审计</th><th>结果</th></tr></thead><tbody>
- <tr><td>Evidence Press 对 100 个 pole 抽查</td><td class="b">86 / 100</td></tr>
+ <tr><td>Evidence Press 对 100 个神经元极（pole）抽查</td><td class="b">86 / 100</td></tr>
  <tr><td>加上“一个想法 + 未放置案例”</td><td class="b">94 / 100</td></tr>
  <tr><td>gallery 中来自后半网络的比例</td><td class="b">71%</td></tr>
  <tr><td>评审方式</td><td class="b">Claude Opus 5.5 判读</td></tr>
  </tbody></table><p class="src">作者脚注：只看强激活时，约 97% 非任意混合，但样本较小。</p></div>
  <div class="stack">
   <div class="mini"><h4>2023 基线</h4><p>GPT-2 XL 的自动解释只有约 <b>1.7%</b> 达到最宽松标准；小型单层模型的 median 评分是 <b>0 / 14</b>。模型、工具、评分都不同，不能直接比较。</p></div>
-  <div class="fig fit"><div class="frame" style="--ar:2.11"><img src="assets/weak-activation.png" alt="去掉最弱 75% 与最强 7% 激活的影响"></div><div class="cap">图 12  弱激活怎么算，会改变比例；消融显示影响集中在强激活（原文）</div></div>
+  
  </div>
 </div>
 <div class="callout">这个数字最强的版本只能写成：在作者挑选并评审的 Qwen3-32B 神经元样本中，约九成看起来有一个主功能。它支持“原生神经元值得研究”，不支持“全模型已被测量”。</div>
@@ -877,11 +879,9 @@ car →  sports car  →  convertible</div>
   <div class="mini accent"><h4>数十万张归因图</h4><p>把一次前向计算拆成节点和边，追踪信息从哪些神经元来、又流向哪里。</p></div>
   <div class="mini"><h4>盲测最大激活</h4><p>一个 agent 只看解释写句子，再拿回原网络测激活；解释错了，会当场露馅。</p></div>
  </div>
- <div>
-  <div class="fig fit"><div class="frame" style="--ar:2.315"><img src="assets/agent-constitution.png" alt="Agent 按 mechanistic constitution 提出并检验解释"></div><div class="cap">图 17  Agent 按一套解释规范（mechanistic constitution）提出、测试、保留或丢弃解释（原文）</div></div>
-  <div class="fig fit" style="margin-top:.35rem"><div class="frame" style="--ar:4.13"><img src="assets/blind-max.png" alt="只看解释写句子，仍能超过语料最大激活"></div><div class="cap">图 18  Agent 2 只看解释写句子，仍能超过语料最大激活（原文）</div></div>
- </div>
+ <div class="quote"><div class="en">They may be able to do in months in frontier language models what took humans most of a decade for vision models.</div><div class="zh">他们也许能在几个月里，做完人类在视觉模型上花了近十年的事。</div></div>
 </div>
+<div class="flow" style="--n:3;margin:.45rem 0 0"><div class="st">Agent 1 写解释<br><span class="small">只看神经元</span></div><div class="st">Agent 2 只写句子<br><span class="small">只看解释</span></div><div class="st last">原网络测激活<br><span class="small">解释错了会露馅</span></div></div>
 <div class="callout">Agent 放大的是实验吞吐量，不是可信度。它可以更快地产生猜想、更快地撞到反例，但也会更快地编出漂亮故事。</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
@@ -945,17 +945,20 @@ car →  sports car  →  convertible</div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
 
-<section data-notes="我的判断分三块。&#10;我接受：经典‘任意混合’叙事不够稳；原生神经元应该回到工具箱；解释能否预测和干预，比听起来是否合理更重要。&#10;我保留：‘相关’不等于‘不是超位置’；终点可读不证明发育机制；90% 是样本判读，不是全模型测量。&#10;下一步：预注册全模型抽样、训练中的受控干预、同一任务上比较 neuron / SAE / 探针（probe）。" class="slide">
-<div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">CHECKS</span><span class="zh">检验</span></div>
+<section data-notes="这一页只讲作者自己的判断，不混入我的取舍。&#10;作者把全文压成四步：第一，网络只有一个学习原则，至少足够接近；第二，现代模型和工具让直接研究变得可行；第三，理解会复利，地图填得越多越快；第四，高度推测——这可能已经接近我们需要的全部。&#10;注意最后一条是推测，不是已证明的结论。" class="slide">
+<div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">TAKEAWAYS</span><span class="zh">作者判断</span></div>
 <div class="stage">
-<h2 class="claim">我的判断：把默认假设变回可检验问题</h2><p class="sub">我接受什么、保留什么、下一步做什么</p>
-<div class="cols c3">
- <div class="col"><div class="rule"></div><div class="label">我接受的</div><h3>经典叙事不够稳</h3><p>工具和架构确实会制造多义性；原生神经元应该回到工具箱；“解释能否预测和干预”比“听起来合理”更重要。</p></div>
- <div class="col accent"><div class="rule"></div><div class="label">我保留的</div><h3>强版本还缺证据</h3><p>“相关”不等于“不是超位置”；终点可读不证明发育机制；90% 是对样本的判读，不是对全模型的测量。</p></div>
- <div class="col"><div class="rule"></div><div class="label">下一步</div><h3>把争论变成实验</h3><p>预注册、全模型随机抽样；在训练中改变数据相关性 / 容量，看功能如何长出来；同一任务上比较 neuron、SAE、探针（probe）。</p></div>
+<h2 class="claim">作者的判断：可解释性可能比想象中更可做</h2><p class="sub">四步论证：一个学习原则 → 现代工具 → 理解复利 → 高度推测</p>
+<div class="split media">
+ <div class="stack">
+  <div class="mini"><div class="label">01 / 一个原则</div><h4>没有“第二套学习原则”挡路</h4><p>如果网络并非一边泛化、一边任意打包，那么直接研究原生神经元就没有根本障碍。</p></div>
+  <div class="mini accent"><div class="label">02 / 工具</div><h4>现代模型 + 工具让常规科学可行</h4><p>更好的架构、更好的可视化、能跑实验的 agent，让“猜—测—改”比过去顺得多。</p></div>
+  <div class="mini"><div class="label">03 / 复利</div><h4>理解会越做越快</h4><p>像填字游戏：每读懂一个神经元或电路，都会给周围更多约束，后面的解释更容易。</p></div>
+  <div class="mini muted"><div class="label">04 / 推测</div><h4>这可能已经接近需要的全部</h4><p>作者明确把这步标成高度推测：可解释性也许比领域假设的更可解，甚至可能在近期做到。</p></div>
+ </div>
+ <div class="fig fit"><div class="frame" style="--ar:1.176"><img src="assets/residual-map.png" alt="ConvNeXt 残差流地图：理解像一张逐步填满的地图"></div><div class="cap">理解像一张逐步填满的地图：从全局下钻到单个神经元，再回到问题（原文）。</div></div>
 </div>
-<div class="fig fit" style="margin-top:.35rem"><div class="frame" style="--ar:3.38"><img src="assets/convnext-atlas.png" alt="ConvNeXt atlas：从全局地图下钻到神经元"></div><div class="cap">图 21  ConvNeXt atlas：从全局地图下钻到单个神经元，再回到问题（原文）</div></div>
-<div class="callout">不必在“网络已经干净”和“网络永远是一团乱麻”之间站队。更值得问的是：在哪个尺度、对哪个读者、用什么检验，它干净到什么程度？</div>
+<div class="callout">作者没有说“已经解决”。他说的是：常规科学可以开始，而且会越做越快；最后一步仍是推测。</div>
 </div>
 <footer class="foot"><span>Cammarata 2026</span></footer>
 </section>
