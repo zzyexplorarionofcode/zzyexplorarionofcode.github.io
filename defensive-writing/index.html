@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>防御性写作 · 论文精读汇报</title>
+<meta name="description" content="OpenAI–Hugging Face 事件的中文论文汇报：事件背景、四步复现、自动审计与对齐评测边界。">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%2320517C'/></svg>">
+<style>
+/* ═══════════════ 设计变量 ═══════════════
+     配色与版式按参考 PPT 实测取得：
+       横幅 #20517C · 强调 #FF6B35 · 正文 #222222
+       副文 #555555 · 浅卡 #EDEDED · 深卡 #000000
+     全篇衬线字体，与参考稿保持一致。
+     ═══════════════════════════════════════ */
+  :root{
+    --banner:  #20517C;
+    --bg:      #FFFFFF;
+    --ink:     #000000;
+    --body:    #222222;
+    --muted:   #555555;
+    --accent:  #FF6B35;
+    --card-lt: #EDEDED;
+    --card-dk: #000000;
+    --hair:    #B8BCC4;
+    --serif:   Georgia, "Times New Roman", "Songti SC", "SimSun", "STSong", serif;
+    --fig-h:   clamp(240px, 48vh, 420px); /* 单图基准高度：图整体变小、不再撑满整屏 */
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html,body{
+    height:100%;
+    background:#E9EAEC;
+    color:var(--body);
+    font-family:var(--serif);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  #deck{position:fixed;inset:0;}
+
+  .slide{
+    position:absolute;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    background:var(--bg);
+    overflow:hidden;
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  .slide.active{display:flex;opacity:1;}
+
+  /* ── 顶部蓝色横幅 ── */
+  .banner{
+    flex:0 0 auto;
+    background:var(--banner);
+    height:clamp(44px,12%,96px);
+    display:flex;align-items:center;
+    padding:0 clamp(1rem,3.6%,46px);
+    gap:clamp(.5rem,1.4vw,1.1rem);
+    color:#fff;
+  }
+  .banner .num{font-size:clamp(1.3rem,3.6vw,2.8rem);font-weight:700;line-height:1;}
+  .banner .slash{
+    width:2px;height:clamp(1.2rem,3vw,2.3rem);
+    background:#fff;transform:rotate(18deg);opacity:.85;flex:0 0 auto;
+  }
+  .banner .sec{
+    font-size:clamp(.85rem,2.6vw,2rem);
+    font-weight:400;line-height:1.1;text-transform:uppercase;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .banner .zh{
+    font-size:clamp(.55rem,.95vw,.78rem);
+    color:#B9CEDF;letter-spacing:.2em;margin-left:.4rem;white-space:nowrap;
+  }
+
+  /* ═══════════════ 布局基调 ═══════════════
+     关键约定：.stage 的直接子元素一律 flex:0 0 auto（不许被压缩），
+     只有标了 .grow 的图区才吸收剩余空间。
+     之前把 .cols 也设成 min-height:0，导致 flex 把它压成 0 高、
+     内部网格行溢出后互相叠在一起——这条约定就是为了根治那个问题。
+     ═══════════════════════════════════════ */
+  .stage{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;flex-direction:column;
+    justify-content:center; /* 内容垂直居中：纯文字页不再「上满下空」 */
+    padding:clamp(.7rem,2.2%,1.7rem) clamp(1rem,3.6%,46px) 0;
+    overflow:hidden;
+  }
+  .stage > *{flex:0 0 auto;}
+
+  .claim{
+    font-size:clamp(1.15rem,2.6vw,2rem);
+    font-weight:700;color:var(--ink);line-height:1.26;
+    margin-bottom:clamp(.25rem,.8%,.55rem);
+  }
+  .sub{
+    font-size:clamp(.78rem,1.4vw,1.08rem);
+    color:var(--muted);line-height:1.45;font-style:italic;
+    margin-bottom:clamp(.5rem,1.6%,1.1rem);
+  }
+  .sub.plain{font-style:normal;}
+
+  /* ── 多列 ── */
+  .cols{
+    display:grid;grid-template-columns:repeat(var(--n,3),1fr);
+    gap:clamp(.7rem,2.6%,2rem);
+    margin-bottom:clamp(.4rem,1.3%,.9rem);
+  }
+  .cols.c2{--n:2;} .cols.c3{--n:3;} .cols.c4{--n:4;}
+
+  .col{min-width:0;}
+  .col .rule{height:2px;background:var(--ink);margin-bottom:clamp(.35rem,1%,.7rem);}
+  .col.accent .rule{background:var(--accent);}
+
+  .label{
+    font-size:clamp(.6rem,1.05vw,.82rem);
+    letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;
+    margin-bottom:clamp(.24rem,.8%,.5rem);
+  }
+  .col.accent .label{color:var(--accent);}
+
+  .col h3{
+    font-size:clamp(.9rem,1.7vw,1.3rem);
+    font-weight:700;color:var(--ink);line-height:1.28;
+    margin-bottom:clamp(.24rem,.8%,.5rem);
+  }
+  .col p{
+    font-size:clamp(.76rem,1.35vw,1.02rem);
+    line-height:1.55;color:var(--body);
+  }
+  .col p + p{margin-top:.42em;}
+
+  /* ── 黑白对比卡 ── */
+  .vs{display:flex;align-items:stretch;gap:clamp(.4rem,1.2%,1rem);margin:clamp(.3rem,1%,.7rem) 0;}
+  .vs .box{
+    flex:1 1 0;display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:clamp(.45rem,1.2%,.85rem);
+    font-size:clamp(.8rem,1.5vw,1.12rem);font-weight:700;line-height:1.3;
+  }
+  .vs .box.lt{background:var(--card-lt);color:var(--ink);}
+  .vs .box.dk{background:var(--card-dk);color:#fff;}
+  .vs .arrow{
+    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:.25em;min-width:clamp(2rem,7%,4rem);
+  }
+  .vs .arrow .ln{width:100%;height:2px;background:var(--accent);}
+  .vs .arrow .tx{
+    font-size:clamp(.58rem,.95vw,.72rem);color:var(--accent);
+    font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.15;
+  }
+
+  /* ── 黑色强调框 ── */
+  .callout{
+    background:var(--card-dk);color:#fff;
+    padding:clamp(.5rem,1.4%,.9rem) clamp(.8rem,2.2%,1.4rem);
+    font-size:clamp(.9rem,1.6vw,1.22rem);
+    font-weight:700;line-height:1.38;text-align:center;
+  }
+  .callout small{
+    display:block;margin-top:.4em;font-size:.74em;font-weight:400;
+    color:#C9C9C9;font-style:italic;
+  }
+
+  /* ═══════════════ 图区 ═══════════════
+     .fig 是竖排的「图框 + 图注」；.frame 负责按可用高度自适应缩放。
+     图片用 max-width/max-height 双向约束，永不溢出、永不变形。
+     ═══════════════════════════════════════ */
+  .fig{display:flex;flex-direction:column;min-height:0;}
+  .fig .frame{
+    border:1.5px dashed var(--hair);
+    padding:clamp(.25rem,.7%,.5rem);
+    background:#fff;overflow:hidden;
+    box-sizing:border-box;
+  }
+  .fig .frame img{
+    display:block;
+    width:100%;height:100%;
+    object-fit:contain;
+  }
+  .fig .cap{
+    flex:0 0 auto;
+    font-size:clamp(.48rem,.82vw,.65rem);
+    color:var(--muted);font-style:italic;line-height:1.35;
+    margin-top:clamp(.2rem,.6%,.35rem);
+  }
+  /* 通栏单图：靠左、定高，宽度 = 高 × 比例，不再撑满剩余空间 */
+  .fig.grow{flex:0 0 auto;min-height:0;}
+  .fig.grow .frame{
+    flex:0 0 auto;
+    align-self:flex-start;  /* 图统一靠左 */
+    width:min(100%, calc(var(--fig-h) * var(--ar,2)));
+    aspect-ratio:var(--ar,2);
+  }
+
+  .fig-row{
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;
+    gap:clamp(.5rem,1.6%,1.2rem);
+  }
+  .fig-row.c3{grid-template-columns:repeat(3,1fr);}
+  .fig-row.split{grid-template-columns:1.05fr .95fr;}
+  .fig-row > .fig{
+    min-height:0;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .fig-row .fig .frame{
+    width:100%;
+    aspect-ratio:var(--ar,2);
+    max-height:100%;
+  }
+  .fig-row.grow{flex:0 0 auto;min-height:0;}
+  /* 左右分栏里的文字栏：自身可滚动，避免把图挤扁 */
+  .fig-row.split > .side{min-height:0;overflow:hidden;}
+
+  /* ── 流程条 ── */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.35rem,1.1%,.75rem);}
+  .flow .st{border:1.5px dashed var(--hair);padding:clamp(.32rem,.9%,.6rem);}
+  .flow .st .t{font-size:clamp(.68rem,1.2vw,.95rem);font-weight:700;color:var(--banner);margin-bottom:.25em;}
+  .flow .st .d{font-size:clamp(.6rem,1.05vw,.8rem);color:var(--muted);line-height:1.45;}
+
+  /* ── 大数字 ── */
+  .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(.8rem,4%,3rem);}
+  .stat{text-align:center;}
+  .stat .n{
+    font-size:clamp(1.3rem,3vw,2.4rem);
+    font-weight:700;color:var(--banner);line-height:1.1;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .l{font-size:clamp(.62rem,1.1vw,.88rem);color:var(--muted);margin-top:.3em;line-height:1.4;}
+
+  /* ── 列表 ── */
+  ul.pts{list-style:none;}
+  ul.pts li{
+    position:relative;padding-left:1.1em;
+    margin-bottom:clamp(.2rem,.7%,.4rem);
+    font-size:clamp(.76rem,1.35vw,1.02rem);
+    line-height:1.5;color:var(--body);
+  }
+  ul.pts li:last-child{margin-bottom:0;}
+  ul.pts li::before{content:"—";position:absolute;left:0;color:var(--hair);}
+  b,strong{color:var(--ink);font-weight:700;}
+  .hi{color:var(--accent);font-weight:700;}
+  .tl{color:var(--banner);font-weight:700;}
+
+  /* ── 页脚 ── */
+  .foot{
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid var(--hair);
+    margin:0 clamp(1rem,3.6%,46px);
+    padding:clamp(.28rem,.75%,.45rem) 0 clamp(.42rem,1.1%,.7rem);
+    font-size:clamp(.46rem,.78vw,.62rem);
+    color:var(--muted);
+  }
+
+  /* ── 封面 ── */
+  .cover .stage{justify-content:center;align-items:center;text-align:center;padding-bottom:1.5rem;}
+  .cover h1{
+    font-size:clamp(1rem,2.8vw,2.2rem);
+    font-weight:700;color:var(--ink);line-height:1.22;
+    max-width:22ch;margin:0 auto clamp(.5rem,1.8%,1.2rem);
+  }
+  .cover .zh-title{
+    font-size:clamp(.82rem,1.9vw,1.4rem);
+    color:var(--banner);font-weight:700;
+    margin-bottom:clamp(.9rem,3.5%,2.2rem);line-height:1.35;
+  }
+  .cover .meta{font-size:clamp(.62rem,1.1vw,.86rem);color:var(--muted);line-height:1.8;}
+  .cover .venue{
+    flex:0 0 auto;text-align:center;
+    padding-bottom:clamp(1rem,4%,2.4rem);
+    font-size:clamp(.85rem,1.9vw,1.45rem);
+    font-weight:700;color:var(--banner);
+  }
+
+  /* ── 目录 ── */
+  .toc{display:grid;gap:clamp(.15rem,.7%,.45rem);}
+  .toc .it{
+    display:grid;grid-template-columns:clamp(1.4rem,3vw,2.4rem) 1fr;
+    align-items:baseline;gap:clamp(.5rem,1.5%,1rem);
+    padding:clamp(.26rem,.85%,.55rem) 0;
+    border-bottom:1px solid #E8E9EB;
+  }
+  .toc .n{font-size:clamp(.9rem,1.9vw,1.5rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .toc .t{font-size:clamp(.85rem,1.55vw,1.2rem);font-weight:700;color:var(--ink);}
+  .toc .d{font-size:clamp(.65rem,1.1vw,.85rem);color:var(--muted);margin-top:.12em;}
+
+  /* ── 控制条 ── */
+  #prog{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:60;transition:width .3s ease;}
+  #hud{
+    position:fixed;right:clamp(.6rem,2%,1.5rem);bottom:clamp(.4rem,1.4%,.95rem);
+    display:flex;align-items:center;gap:.7rem;z-index:50;
+  }
+  #dots{display:flex;gap:5px;}
+  #dots button{
+    width:7px;height:7px;border-radius:50%;border:none;
+    background:#C7CBD1;cursor:pointer;padding:0;
+    transition:background .2s,transform .2s;
+  }
+  #dots button:hover{background:var(--muted);transform:scale(1.3);}
+  #dots button.on{background:var(--banner);transform:scale(1.3);}
+  #counter{font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .hot{position:fixed;top:0;bottom:0;width:9%;z-index:40;cursor:pointer;}
+  .hot.l{left:0;} .hot.r{right:0;}
+
+  /* ═══════════════ 响应式 ═══════════════ */
+  @media (max-width:1000px){
+    .cols.c3,.cols.c4{--n:2;}
+    .flow{grid-template-columns:repeat(2,1fr);}
+    .fig-row.c3{grid-template-columns:1fr 1fr;}
+  }
+  /* 矮屏：优先削横幅与留白，把高度让给图 */
+  @media (max-height:700px){
+    .banner{height:clamp(40px,10%,72px);}
+    .stage{padding-top:.55rem;}
+    .claim{margin-bottom:.2rem;}
+    .sub{margin-bottom:.5rem;}
+  }
+  /* 窄屏：整页改为可滚动的长文档，图区不再吸收高度 */
+  @media (max-width:720px){
+    html,body{overflow:auto;}
+    .slide{position:relative;inset:auto;min-height:100vh;overflow:visible;}
+    .slide.active{display:flex;}
+    .stage{overflow:visible;padding-bottom:1rem;justify-content:flex-start;}
+    .stage > *,.fig.grow,.fig-row.grow{flex:0 0 auto;}
+    .cols.c2,.cols.c3,.cols.c4{--n:1;}
+    .flow,.fig-row,.fig-row.c3,.fig-row.split{grid-template-columns:1fr;grid-template-rows:none;}
+    .fig .frame{max-height:none;}
+    .vs{flex-direction:column;}
+    .vs .arrow .ln{width:55%;}
+    .hot{display:none;}
+    #hud{right:auto;left:50%;transform:translateX(-50%);}
+  }
+
+  /* ═══════════════ 以下为汇报页新增 ═══════════════
+     站点首页那份样式表里没有的几条：真表格、引文块、竖排小卡、
+     公式块、流程条、备注面板、总览。上面的设计变量原样沿用。 */
+
+  /* ── 真表格（本站首页用的是表格截图，这份讲稿改成矢量表格）── */
+  .tbl-wrap{overflow:auto;min-width:0;}
+  table.tbl{
+    width:100%;border-collapse:collapse;table-layout:fixed;
+    font-size:calc(clamp(.58rem,1vw,.8rem) * var(--fs,1));
+  }
+  table.tbl th,table.tbl td{
+    padding:.45em .55em;border:1px solid #E3E5E9;line-height:1.38;
+    text-align:center;color:var(--body);vertical-align:middle;
+    overflow-wrap:break-word;
+  }
+  table.tbl th{background:#E8EAEE;color:var(--ink);font-weight:700;}
+  table.tbl td:first-child,table.tbl th:first-child{text-align:left;}
+  table.tbl tbody tr:nth-child(even) td{background:var(--card-lt);}
+  table.tbl td.b{font-weight:700;color:var(--ink);}
+
+  /* ── 卡片栏：密页把行距收紧一点 ── */
+  .cols.tight{gap:clamp(.6rem,2%,1.4rem);}
+  .col.green .rule{background:#1E7A4B;}
+  .col.green .label{color:#1E7A4B;}
+  .col.blue .rule{background:#1F4E9C;}
+  .col.blue .label{color:#1F4E9C;}
+  .col.muted .rule{background:var(--hair);}
+
+  /* ── 左图右文 / 左表右文的通用分栏 ── */
+  .split{
+    display:grid;align-items:start;min-height:0;
+    gap:clamp(.9rem,2.6%,2rem);margin-bottom:clamp(.3rem,1%,.6rem);
+  }
+  .split.media{grid-template-columns:1.02fr .98fr;}
+  .split.table{grid-template-columns:1.15fr .85fr;}
+  .split.formula{grid-template-columns:.95fr 1.05fr;}
+  .split > *{min-width:0;}
+
+  /* ── 竖排小卡：图旁边那几条说明 ── */
+  .stack{display:grid;gap:clamp(.6rem,1.8%,1.1rem);align-content:start;}
+  .mini{border-top:2px solid var(--ink);padding-top:.5em;}
+  .mini.accent{border-color:var(--accent);}
+  .mini.green{border-color:#1E7A4B;}
+  .mini.blue{border-color:#1F4E9C;}
+  .mini.muted{border-color:var(--hair);}
+  .mini h4{
+    font-size:clamp(.88rem,1.6vw,1.18rem);font-weight:700;color:var(--ink);
+    line-height:1.3;margin-bottom:.32em;
+  }
+  .mini p{font-size:clamp(.74rem,1.28vw,.98rem);line-height:1.55;color:var(--body);}
+  .mini .label{margin-bottom:.36em;}
+  .rcol{display:grid;gap:clamp(.7rem,2%,1.1rem);align-content:start;}
+
+  /* ── 图框：按真实宽高比撑开，图不会被拉变形 ── */
+  .fig{display:flex;flex-direction:column;min-height:0;min-width:0;}
+  .fig .frame{
+    border:1.5px dashed var(--hair);background:#fff;
+    padding:clamp(.22rem,.6%,.45rem);box-sizing:border-box;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fig.fit .frame{aspect-ratio:var(--ar,1.6);width:100%;}
+  /* 通栏图：按可用高度反推宽度，图框正好贴住图，不留白带 */
+  .fig.center{align-items:center;}
+  .fig.center .frame{width:min(100%, calc(var(--fh,40vh) * var(--ar,1.6)));aspect-ratio:var(--ar,1.6);}
+  .fig .frame img{display:block;width:100%;height:100%;object-fit:contain;}
+  .fig .cap{
+    font-size:clamp(.5rem,.85vw,.68rem);color:var(--muted);font-style:italic;
+    line-height:1.4;margin-top:.3em;
+  }
+
+  /* ── 公式块 ── */
+  .frows{display:grid;gap:clamp(.4rem,1.4%,.85rem);}
+  .frow .k{font-size:clamp(.78rem,1.4vw,1.02rem);font-weight:700;color:var(--ink);}
+  .frow .v{font-size:clamp(.7rem,1.22vw,.94rem);color:var(--body);line-height:1.5;margin-top:.16em;}
+  .fbox{
+    background:var(--card-lt);padding:clamp(.8rem,2.2%,1.5rem) clamp(.9rem,2.4%,1.6rem);
+    text-align:center;
+  }
+  .fbox .fmain{font-size:clamp(.82rem,1.5vw,1.1rem);font-weight:700;color:var(--ink);line-height:1.4;}
+  .fbox .fnote{font-size:clamp(.62rem,1.08vw,.84rem);color:var(--muted);line-height:1.5;margin-top:.9em;}
+
+  /* ── 流程条 ── */
+  .flow{
+    display:grid;grid-template-columns:repeat(var(--n,4),1fr);
+    gap:clamp(.35rem,1.1%,.7rem);margin-bottom:clamp(.6rem,1.8%,1.1rem);
+  }
+  .flow .st{
+    border:1.5px solid var(--hair);background:var(--card-lt);
+    padding:clamp(.45rem,1.2%,.7rem) clamp(.35rem,.9%,.55rem);
+    font-size:clamp(.6rem,1.06vw,.82rem);line-height:1.4;text-align:center;color:var(--body);
+  }
+  .flow .st.last{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+
+  /* ── 例子的设定条与两张并排的表 ── */
+  .setup{
+    background:var(--card-lt);text-align:center;
+    padding:clamp(.4rem,1.1%,.65rem) clamp(.6rem,1.6%,1rem);
+    font-size:clamp(.66rem,1.15vw,.88rem);color:var(--body);
+    margin-bottom:clamp(.6rem,1.8%,1rem);
+  }
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.9rem,2.6%,2rem);margin-bottom:clamp(.6rem,1.8%,1rem);}
+  .panel .ptitle{font-size:clamp(.62rem,1.08vw,.84rem);color:var(--muted);margin-bottom:.4em;}
+
+  /* ── 引文块（正例 / 反例）── */
+  .quoteboxes{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.8rem,2.4%,1.8rem);margin-bottom:clamp(.7rem,2%,1.2rem);}
+  .quotebox{padding:clamp(.6rem,1.6%,1rem) clamp(.7rem,1.9%,1.2rem);}
+  .quotebox.pos{background:#ECF5EF;}
+  .quotebox.neg{background:var(--card-lt);}
+  .quotebox q{
+    display:block;font-style:italic;color:var(--ink);
+    font-size:clamp(.72rem,1.28vw,.98rem);line-height:1.45;
+  }
+  .quotebox .nb{display:block;margin-top:.7em;font-size:clamp(.64rem,1.1vw,.86rem);line-height:1.5;}
+  .quotebox.pos .nb{color:#1E7A4B;}
+  .quotebox.neg .nb{color:var(--muted);}
+
+  /* ── 灰色小字注 ── */
+  .src{font-size:clamp(.56rem,.95vw,.72rem);color:var(--muted);line-height:1.45;margin-top:.5em;}
+  .lead{font-size:clamp(.76rem,1.35vw,1.02rem);color:var(--body);line-height:1.55;margin-bottom:clamp(.5rem,1.6%,1rem);}
+
+  /* ── 封面（分栏）与收尾页 ── */
+  .cover.wide .stage{align-items:stretch;text-align:left;justify-content:center;}
+  .cover-grid{
+    display:grid;grid-template-columns:1.02fr .98fr;
+    gap:clamp(1rem,3.4%,2.6rem);align-items:center;width:100%;
+  }
+  .cover .eyebrow{
+    font-size:clamp(.58rem,1.05vw,.82rem);letter-spacing:.26em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin-bottom:1em;
+  }
+  .cover-grid h1{
+    font-size:clamp(1.1rem,2.9vw,2.3rem);font-weight:700;color:var(--ink);
+    line-height:1.24;margin:0 0 .7em;max-width:none;
+  }
+  .cover .en-title{
+    font-size:clamp(.64rem,1.12vw,.88rem);color:var(--muted);
+    font-style:italic;line-height:1.55;margin-bottom:1.4em;
+  }
+  .cover .hr{width:34%;height:2px;background:var(--ink);margin-bottom:1.3em;}
+  .cover .meta{font-size:clamp(.6rem,1.06vw,.84rem);color:var(--body);line-height:1.9;}
+  .cover .meta .dim{color:var(--muted);}
+  .cover-fig{min-width:0;display:flex;justify-content:center;}
+  .cover-fig .fig{width:100%;}
+
+  .thanks .stage{justify-content:center;align-items:center;text-align:center;}
+  .thanks h1{font-size:clamp(1.5rem,4.2vw,3rem);font-weight:700;color:var(--ink);margin-bottom:.5em;}
+  .thanks .hr{width:80px;height:2px;background:var(--hair);margin:1.6em auto;}
+
+  /* ── 备注面板（按 N 开关）与总览（按 O 开关）── */
+  #notes{
+    position:fixed;left:0;right:0;bottom:0;z-index:70;display:none;
+    max-height:40vh;overflow:auto;background:#15161A;color:#E6E6E6;
+    padding:1.2rem clamp(1rem,4%,3rem) 1.6rem;
+    font-size:.8rem;line-height:1.75;white-space:pre-wrap;
+  }
+  body.show-notes #notes{display:block;}
+  #notes .nt{color:var(--accent);font-weight:700;letter-spacing:.18em;font-size:.66rem;margin-bottom:.7em;}
+
+  #ov{
+    position:fixed;inset:0;z-index:80;display:none;overflow:auto;
+    background:rgba(255,255,255,.98);padding:clamp(1.4rem,4%,3rem) clamp(1rem,5%,4rem);
+  }
+  body.show-ov #ov{display:block;}
+  #ov .ovh{font-size:.7rem;letter-spacing:.24em;color:var(--accent);font-weight:700;margin-bottom:1.2rem;}
+  #ov .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.8rem;}
+  #ov button{
+    font-family:inherit;text-align:left;cursor:pointer;background:#fff;
+    border:1px solid var(--hair);padding:.7rem .85rem;color:var(--body);
+    font-size:clamp(.66rem,1.1vw,.82rem);line-height:1.45;transition:border-color .15s,transform .15s;
+  }
+  #ov button:hover{border-color:var(--accent);transform:translateY(-2px);}
+  #ov button .n{color:var(--accent);font-weight:700;margin-right:.45em;font-variant-numeric:tabular-nums;}
+
+  @media (max-width:1000px){
+    .split.media,.split.table,.split.formula{grid-template-columns:1fr;}
+    .panels,.quoteboxes,.cover-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:720px){
+    .flow{grid-template-columns:1fr 1fr;}
+    .fig.center .frame{height:auto;width:100%;}
+    #notes{position:static;max-height:none;}
+  }
+
+
+  /* ── ALERT 专用覆盖：表格按 PPT 的无竖线样式，公式图自适应 ── */
+  table.tbl th,table.tbl td{border:none;border-bottom:1px solid #E3E5E9;}
+  table.tbl thead th{border-bottom:1px solid #C9CED6;}
+  table.tbl tbody tr:nth-child(even) td{background:#F7F8FA;}
+  table.tbl td.hl{background:#FDEDE6 !important;font-weight:700;color:var(--ink);}
+  table.tbl tr.hl td{background:#FDEDE6 !important;font-weight:700;color:var(--ink);}
+  .fig .frame{border:none;padding:0;}
+  .fbox{background:transparent;padding:.15rem 0;}
+  .fbox img{max-width:100%;height:auto;display:block;margin:0 auto;}
+  .fbox.eq{padding:.2rem 0;}
+  .col .fbox.eq{height:120px;display:flex;align-items:center;justify-content:center;}
+  .col .fbox.eq img{max-height:105px;width:auto;max-width:100%;}
+  .frow .v img{max-width:100%;height:auto;display:block;margin:.25em 0 .3em;}
+  .callout{margin-top:.65rem;}
+  .tbl-wrap{margin-bottom:.35rem;}
+  table.tbl{font-size:calc(clamp(.62rem,1.05vw,.95rem)*var(--fs,1));}
+  /* 内容页改为顶部对齐，更接近 PPT 的阅读顺序 */
+  .slide:not(.cover):not(.thanks) .stage{justify-content:flex-start;padding-top:clamp(1.2rem,3.6vh,2.4rem);}
+  /* 黑色结论条贴到内容区底部，和 PPT 的通栏位置一致 */
+  .stage > .callout{margin-top:auto;}
+
+/* ── OpenAI–Hugging Face 报告新增：代码块、引文、时间线 ── */
+.code{background:#131B23;color:#D8E3EC;font-family:var(--font-mono);font-size:clamp(.56rem,.95vw,.76rem);line-height:1.55;padding:clamp(.55rem,1.4%,.85rem) clamp(.65rem,1.7%,1rem);white-space:pre-wrap;overflow:auto;border-radius:2px;}
+.code .c{color:#FFB496;}
+.quote{border-left:3px solid var(--accent);padding:.15em 0 .15em .9em;margin:.45em 0;}
+.quote .en{font-style:italic;color:var(--muted);font-size:clamp(.56rem,.95vw,.76rem);line-height:1.45;}
+.quote .zh{font-size:clamp(.68rem,1.12vw,.88rem);color:var(--body);line-height:1.5;margin-top:.2em;}
+.timeline{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.45rem,1.3%,.85rem) clamp(1rem,3%,2rem);}
+.timeline .item{display:grid;grid-template-columns:4.8rem 1fr;gap:.55em;border-top:1px solid #E3E5E9;padding-top:.38em;}
+.timeline .d{font-family:var(--font-mono);font-size:clamp(.54rem,.9vw,.7rem);font-weight:700;color:var(--accent);white-space:nowrap;}
+.timeline .t{font-size:clamp(.64rem,1.08vw,.84rem);line-height:1.4;color:var(--body);}
+.small{font-size:clamp(.58rem,.98vw,.72rem);color:var(--muted);line-height:1.45;}
+.qlist{display:grid;gap:.9em;}
+.qlist .q{border-top:1px solid #E3E5E9;padding-top:.55em;}
+.qlist .q .n{font-family:var(--font-mono);font-size:.7em;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+.qlist .q p{font-size:clamp(.78rem,1.35vw,1rem);line-height:1.5;margin-top:.2em;}
+@media(max-width:720px){.timeline{grid-template-columns:1fr;}}
+
+
+  .dw-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;margin:1.1rem 0;}
+  .dw-card{border-top:3px solid var(--banner);background:#f5f6f7;padding:1.05rem;min-height:170px;}
+  .dw-card b{display:block;color:var(--banner);font-size:1.05rem;margin-bottom:.6rem;}
+  .dw-card p{font-size:1.03rem;line-height:1.52;}
+  .dw-card.accent{border-color:var(--accent);}
+  .dw-figure{display:block;max-width:100%;max-height:48vh;width:auto;height:auto;object-fit:contain;margin:.7rem auto .2rem;}
+  .dw-figure.tall{max-height:53vh;}
+  .dw-caption{text-align:center;color:var(--muted);font-size:.8rem;margin-bottom:.5rem;}
+  .dw-table{border-collapse:collapse;width:100%;font-size:1rem;margin:1.1rem 0;}
+  .dw-table th,.dw-table td{padding:.65rem .8rem;text-align:left;border-bottom:1px solid #cad0d5;}
+  .dw-table th{background:#eef0f2;color:var(--banner);}
+  .dw-table td strong{color:var(--banner);}
+  .dw-big{font-size:2.1rem;color:var(--banner);font-weight:700;}
+  .dw-quote{font-size:1.6rem;line-height:1.55;border-left:6px solid var(--accent);padding:.7rem 1.4rem;background:#f5f6f7;margin:1.2rem 0;}
+  .dw-source{font-size:.8rem;color:var(--muted);margin-top:.6rem;}
+  .dw-flow{display:flex;align-items:stretch;gap:.5rem;margin:1.3rem 0;}
+  .dw-flow span{flex:1;background:#eef0f2;border-top:3px solid var(--banner);padding:1rem;font-size:1.05rem;line-height:1.5;}
+  .dw-flow em{align-self:center;font-size:1.5rem;color:var(--accent);font-style:normal;}
+  @media(max-width:720px){.dw-grid{grid-template-columns:1fr}.dw-card{min-height:0}.dw-flow{flex-direction:column}.dw-flow em{text-align:center;transform:rotate(90deg)}.dw-figure,.dw-figure.tall{max-height:none;width:100%}.dw-table{font-size:.8rem}}
+</style></head><body><div id="deck"><section class="slide cover wide" data-notes="这篇论文研究模型帮作者改论文时，是否会把结论写得过分保守。报告按四个问题展开：是否存在、由什么触发、谨慎是否合理、读者和审稿模型怎样反应。"><div class="banner"><span class="slash"></span></div><div class="stage"><div class="cover-grid"><div class="cover-text"><div class="eyebrow">PAPER 06 · SCIENTIFIC WRITING</div><h1>当“谨慎”<br>改写了作者的结论</h1><div class="en-title">Defensive Writing in GPT Models</div><div class="hr"></div><div class="meta">Junchi Liao · Xiao Huang · Yucheng Liu · Jiawen Deng · Fuji Ren<br><span class="dim">arXiv:2610.11355v2 · 2026-10-13</span></div></div><div class="cover-fig"><img class="dw-figure" src="assets/图1.png" alt="原论文图1：防御性写作概览"></div></div></div></section>
+<section class="slide" data-notes="这个例子说明改写不只影响流畅度，也影响主张的强弱。论文图4提供实际段落案例；此页是简化示意。"><div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div><div class="stage"><h2 class="claim">一段改写可能改变作者原本想说的话</h2><p class="sub">从一个直觉例子进入论文问题</p><div class="dw-quote">原文：实验结果支持方法 A 更稳定。<br>改写：这些比较本身<strong>不能证明</strong>方法 A 更稳定。</div><div class="callout">语言更像审稿回复，但“不能证明”是否成立，必须回到证据判断。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="有据的谨慎是正常科学写作。论文的操作性定义以写作者当时拿到的材料为准，随后又用完整论文做真实性核查。"><div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">BACKGROUND</span><span class="zh">背景</span></div><div class="stage"><h2 class="claim">谨慎措辞有两种，关键在于证据是否支持</h2><p class="sub">必要概念：限定语 qualification 与主张 claim</p><div class="dw-grid"><div class="dw-card"><b>有据限定</b><p>材料明确只测试了两个数据集，写成“在这两个数据集上有效”。</p></div><div class="dw-card"><b>无据限定</b><p>材料没有提到混杂因素，改写却说“可能只是数据集差异”。</p></div><div class="dw-card"><b>撤回主张</b><p>从“结果支持 X”改成“结果并未证明 X”。</p></div></div><div class="callout">作者把“给定写作者的材料里没有依据，却缩窄或质疑主张”定义为防御性写作。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="四个问题对应四层证据。作者提出科学纠错与预期审稿两种不互斥的解释；后面每页都标清楚实验对照。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">THESIS & DESIGN</span><span class="zh">观点与设计</span></div><div class="stage"><h2 class="claim">这篇论文要解释四个层层递进的问题</h2><p class="sub">RQ = research question，研究问题</p><div class="dw-grid"><div class="dw-card"><b>RQ1 / 是否存在</b><p>不同模型会不会加入无据限定、弱化甚至撤回作者主张？</p></div><div class="dw-card"><b>RQ2 / 谁触发</b><p>润色、准确性、预期审稿与实际审稿，哪种指令改变写法？</p></div><div class="dw-card"><b>RQ3–4 / 是否值得</b><p>这些修改有证据吗？AI 审稿模型与真人读者如何评价？</p></div></div><div class="callout">两种解释并存：模型可能在纠正过强主张，也可能在预先应付审稿质疑。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="主实验的控制关键是同一个输入段落交给不同模型。模型只见这一段，不见整篇论文；要求修改得经得起同行评审。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">THESIS & DESIGN</span><span class="zh">观点与设计</span></div><div class="stage"><h2 class="claim">主实验先固定材料，再改变写作者</h2><p class="sub">20 篇 ChatGPT 问世前的计算机论文，共 77 个段落</p><div class="dw-flow"><span>原作者段落<br>四类：创新、贡献、结果分析、讨论</span><em>→</em><span>12 个模型改写<br>每次只见一个段落及位置说明</span><em>→</em><span>对比原文<br>统计新增限定与主张变化</span></div><div class="callout">每篇至多取每类一段：20 + 20 + 20 + 17 = 77。原文是人的写作基线。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="证据表写作不是把77段再改一次。它从16篇方法论文提取事实，四种段落分开生成。原作者知晓更多背景，故原文相对证据表也可能显得有“无据”内容。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">THESIS & DESIGN</span><span class="zh">观点与设计</span></div><div class="stage"><h2 class="claim">另一条任务从证据表直接写作，检验是否依赖原文措辞</h2><p class="sub">只用 16 篇提出方法的论文；证据表保留方法、设置与全部结果</p><img class="dw-figure tall" src="assets/证据表构造.png" alt="图 1  证据表构造示意（用户提供素材，源自论文附录）"><div class="dw-caption">图 1  证据表构造示意（用户提供素材，源自论文附录）</div><div class="callout">这条任务不包含作者的解释和评价，模型要自己从证据形成段落；模型间比较比“模型对原作者”比较更合适。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="无据限定有三种：宣称结果不能证明、凭空提出疑虑、泛泛缩窄到测试设置。撤回率的分母是所有原文主张，非段落数。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">THESIS & DESIGN</span><span class="zh">观点与设计</span></div><div class="stage"><h2 class="claim">论文用两把尺分别量“多说了什么”和“改掉了什么”</h2><p class="sub">一句话记忆：句子编码看新增限定；主张追踪看原结论</p><div class="dw-grid"><div class="dw-card"><b>尺一：每百词无据限定数</b><p>Rᵤ = 100 × 无据限定句数 ÷ 全部词数。还报告至少出现一句的文本占比。</p></div><div class="dw-card"><b>尺二：主张状态</b><p>逐条对比原文主张：保留、增强、弱化、限定范围、撤回或删除。</p></div><div class="dw-card"><b>可靠性检查</b><p>植入限定语的检出率 97%；第二编码器对无据限定的一致性 κ = 0.66。</p></div></div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="强调是每百词的句数，不是百分比。图中误差棒是按论文聚类自助抽样得到的95%置信区间。GPT版本间推理配置也变化，不能单独归因于版本。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">近期 GPT 版本在结果分析与讨论里增加更多无据限定</h2><p class="sub">主实验：同样的段落、同样的改写请求</p><img class="dw-figure" src="assets/图2.png" alt="图 2  不同模型的无据限定与主张变化（原文 Fig. 2）"><div class="dw-caption">图 2  不同模型的无据限定与主张变化（原文 Fig. 2）</div><div class="callout">GPT-6-astra 在结果分析中为 1.30 句/百词；原作者是 0.04。讨论段落为 1.32 对 0.00（表 1）。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="这里的百分比以原文提取出的主张为分母。撤回不一定错误，RQ3会核查完整论文。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">“写得更软”和“否定原结论”是不同程度的变化</h2><p class="sub">表 1：跨四类段落汇总的原作者主张占比</p><table class="dw-table"><thead><tr><th>写作者</th><th>弱化或限定</th><th>撤回</th></tr></thead><tbody><tr><td>GPT-4o</td><td>15%</td><td>0.2%</td></tr><tr><td>GPT-5.5</td><td>28%</td><td>0.6%</td></tr><tr><td><strong>GPT-6-astra</strong></td><td><strong>38%</strong></td><td><strong>7.9%</strong></td></tr><tr><td>Claude Opus 5.5</td><td>12%</td><td>0.4%</td></tr></tbody></table><div class="callout">较早版本主要是变软；GPT-6-astra 还会明确否定原作者的说法。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="证据表列出了有利和不利结果。此处模型仍加无据限定，说明不全是原段落措辞带来的。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">从证据表写作也出现相近趋势，但比较逻辑不同</h2><p class="sub">同一张事实表，没有原文句子可模仿</p><table class="dw-table"><thead><tr><th>段落</th><th>GPT-6-astra</th><th>GPT-5.5</th><th>Claude Opus 5.5</th></tr></thead><tbody><tr><td>结果分析</td><td>0.52</td><td>0.06</td><td>0.00</td></tr><tr><td>讨论</td><td>0.98</td><td>0.09</td><td>0.05</td></tr></tbody></table><div class="callout">数字均为每百词无据限定句数；作者主要据此比较模型之间，而不将原作者当作严格基线。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="图3的纵轴是每百词无据限定句数。P8、P9是后补的无审稿修订控制，空心点。注意不把所有P组当作完全同一批次。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">只让模型润色，防御性写作接近原文水平</h2><p class="sub">P1–P9：改变任务要求，保留共同的禁止编造结果等约束</p><img class="dw-figure" src="assets/图3.png" alt="图 3  不同提示语境中的无据限定（原文 Fig. 3）"><div class="dw-caption">图 3  不同提示语境中的无据限定（原文 Fig. 3）</div><div class="callout">P1–P3 只润色：低；P4 提到同行评审：升高；P5 明说“回应审稿人可能的质疑”：最高。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="P8/P9仅三个写作者，且晚于P1–P7运行。作者重跑GPT版本P4，数值接近原运行。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">触发因素是“检查主张”，预期质疑会进一步放大</h2><p class="sub">P8/P9 排除了“只是修订动作”与“审稿场景”完全重合的解释</p><table class="dw-table"><thead><tr><th>指令</th><th>要求</th><th>观察</th></tr></thead><tbody><tr><td>P1–P3</td><td>润色措辞</td><td>各模型接近原文</td></tr><tr><td>P4</td><td>经得起同行评审</td><td>无据限定上升</td></tr><tr><td>P5</td><td>回应可能的审稿质疑</td><td>上升最强</td></tr><tr><td>P8</td><td>科学准确，未提审稿</td><td>仍显著上升</td></tr><tr><td>P9</td><td>按证据允许的强度陈述</td><td>高于润色，低于部分审稿提示</td></tr></tbody></table><div class="callout">“争取录用”的 P6 比“预期质疑”的 P5 弱，说明不是单纯高风险目标驱动。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="表2。每一轮都相对原作者段落计算。审稿意见本身由模型产生，不是新证据。三轮文本长度达到原文两到三倍。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">多轮自审让限定迅速增加，GPT 还撤回更多主张</h2><p class="sub">每轮先让模型充当审稿人，再按自己的意见修改</p><table class="dw-table"><thead><tr><th>写作者 / 第 1 轮</th><th>自审后每百词限定</th><th>撤回原主张</th></tr></thead><tbody><tr><td>GPT-5.5</td><td>0.95</td><td>10.8%</td></tr><tr><td>GPT-5.6-sol</td><td>1.42</td><td>18.3%</td></tr><tr><td>GPT-6-astra</td><td>1.87</td><td>25.3%</td></tr><tr><td>Claude Opus 5.5</td><td>0.54</td><td>1.2%</td></tr></tbody></table><div class="callout">对照链只做三轮润色，GPT-6-astra 第 1 轮仅 0.04 句/百词、撤回 0.2%。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="两个标注人读完整论文，而且不知道模型与提示。论文报告一致性κ为0.68到0.83。18个共同认定的撤回里有解释性主张，具体合理性也有未达共识项。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">看完整论文后，多数“撤回”是在纠正过强主张</h2><p class="sub">两名博士生独立核查 GPT-6-astra 在 P5 下的改写</p><div class="dw-grid"><div class="dw-card"><b>核查对象</b><p>46 条自动标作“撤回”的主张，再混入 12 条保留或弱化的主张。</p></div><div class="dw-card"><b>共同判断</b><p>两人都认为 20 条过强或被反证的主张，其修改均合理；4 条有支持的主张，其修改均不必要。</p></div><div class="dw-card"><b>撤回再判</b><p>两人共同确认的 18 个撤回中，13 个合理、1 个不必要；其余未获共同定性。</p></div></div><div class="callout">因此“撤回”不能直接等同于错误防御；自动追踪器的绝对撤回率要谨慎读。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="60条包括GPT-6-astra 36条、GPT-5.5 12条、Claude Opus 5.5 12条。这里说多数是36/60，两人共同判断。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">新增限定多数并不提供新信息</h2><p class="sub">另抽取 60 条 P5 无据限定，逐条看完整论文</p><table class="dw-table"><thead><tr><th>两名标注者共同判断</th><th>条数 / 60</th><th>含义</th></tr></thead><tbody><tr><td>冗余</td><td>36</td><td>不算错，但原文已限定或细心读者无需再提醒</td></tr><tr><td>有依据</td><td>16</td><td>完整论文能支持这项提醒</td></tr><tr><td>错误</td><td>3</td><td>与完整证据不符</td></tr><tr><td>未同判</td><td>5</td><td>两人未形成同一标签</td></tr></tbody></table><div class="callout">这就区分了两件事：纠正过强结论可能有益，层层加限定常常只增加字数。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="表3。P1与P5不只差限定词，因此下一页的最小对照更关键。作者没有把原作者文章放进AI审稿评分。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">AI 审稿模型给“预先回应质疑”的版本更高分</h2><p class="sub">两位审稿模型比较同一写作者的 P5 与 P1 版本</p><table class="dw-table"><thead><tr><th>写作者</th><th>P5 − P1 总分</th><th>P5 − P1 可靠性</th></tr></thead><tbody><tr><td>GPT-5.5</td><td>+1.29</td><td>+1.49</td></tr><tr><td>GPT-5.6-sol</td><td>+0.99</td><td>+1.20</td></tr><tr><td>GPT-6-astra</td><td>+1.22</td><td>+1.84</td></tr><tr><td>Claude Opus 5.5</td><td>+0.69</td><td>+0.67</td></tr></tbody></table><div class="callout">分数为 1–10 分制的平均差；两个审稿模型是 Claude Sonnet 5 与 DeepSeek-V4-Flash。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="由未参与审稿的Grok 4.7删去限定句中的限定部分，不添加内容。审稿模型在修改后抱怨主张过宽或未讨论局限。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">只删去限定部分，AI 审稿分数仍下降</h2><p class="sub">144 对改写文本；删减使无据限定率减少 76–93%</p><div class="dw-grid"><div class="dw-card"><b>总体分下降</b><p>平均 −0.82 分；95% 区间为 [−0.95, −0.70]。</p></div><div class="dw-card"><b>可靠性分下降</b><p>平均 −1.12 分；95% 区间为 [−1.29, −0.97]。</p></div><div class="dw-card"><b>解释边界</b><p>删去限定也缩短文本，部分失分可能与内容减少有关。</p></div></div><div class="callout">论文据此认为审稿模型会奖励这些限定；这不代表真正的同行评审也会如此。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="表4。读者不知道文本来源和实验假设。P1与P5整段不同，无法把真人读者的评分差只归因于限定词。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EXPERIMENTS</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">四名真人读者觉得 P5 更费力，作者显得更不确定</h2><p class="sub">只读 GPT-6-astra 的 20 个结果分析/讨论段落；每人只见每段的一个版本</p><table class="dw-table"><thead><tr><th>读者评分</th><th>P1 润色</th><th>P5 预期质疑</th></tr></thead><tbody><tr><td>易读（1–7）</td><td>5.75</td><td>5.05</td></tr><tr><td>行文连贯（1–7）</td><td>6.05</td><td>5.25</td></tr><tr><td>阅读费力（1–7）</td><td>2.55</td><td>3.60</td></tr><tr><td>作者确定感（1–5）</td><td>4.35</td><td>3.38</td></tr></tbody></table><div class="callout">理解题两版均为 100% 正确，已触及天花板；四名读者的结果只描述这组参与者。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="这页用来把看似杂乱的表图归位。主线不是“谨慎好还是坏”，而是哪些变化有证据，哪些只是审稿压力下的冗余表述。"><div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">讨论</span></div><div class="stage"><h2 class="claim">四组实验合起来，支持一个分层解释</h2><p class="sub">用“观察 → 排除 → 核查 → 后果”读完全文</p><div class="dw-flow"><span>RQ1<br>近期 GPT 更常加限定、弱化结论</span><em>→</em><span>RQ2<br>检查主张即触发；预期质疑更强</span><em>→</em><span>RQ3<br>多数撤回合理；多数新增限定冗余</span><em>→</em><span>RQ4<br>AI 审稿偏好；真人阅读更费力</span></div><div class="callout">作者的核心主张：模型既可能修正过强表述，也可能为预期的审稿批评写出多余的防御性文字。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="不要把结果推广到中文、其他学科、整篇文章，或真实同行评审。原文Limitations逐条列出这些边界。"><div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">讨论</span></div><div class="stage"><h2 class="claim">结论只覆盖这组材料、模型和测量方式</h2><p class="sub">这些范围是论文自己承认的</p><div class="dw-grid"><div class="dw-card"><b>样本与模型</b><p>20 篇英语计算机论文、四类段落；每模型每输入只生成一次；封闭模型会更新。</p></div><div class="dw-card"><b>测量</b><p>句子编码依赖模型；主张追踪器对“是否撤回”的一致性较弱。GPT 版本同时改变推理设置。</p></div><div class="dw-card"><b>评审与阅读</b><p>完整论文核查集中在 P5；AI 审稿只有两种模型；真人读者仅四位。</p></div></div><div class="callout">实验观察到的是具体提示下的写作行为，尚不能识别训练中的哪一环造成这种倾向。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="这不是要求删掉所有谨慎表述。作者强调有据的限定是良好科学写作的一部分。"><div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">讨论</span></div><div class="stage"><h2 class="claim">改写学术论文时，要核对“谨慎”究竟来自哪里</h2><p class="sub">这也是本文留给写作者的实践含义</p><div class="dw-grid"><div class="dw-card"><b>看原作者主张</b><p>改写有没有把“支持”变成“不能证明”？</p></div><div class="dw-card"><b>看完整证据</b><p>限制条件是否真实存在，还是只来自模型预设的质疑？</p></div><div class="dw-card"><b>看读者成本</b><p>增加的限定是否传达了新信息？</p></div></div><div class="callout">论文建议：用于审稿的 GPT 改写要逐条对照作者自己的证据；AI 审稿分数不宜脱离同样的证据核查使用。</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section>
+<section class="slide" data-notes="论文v2是本报告唯一主资料。未找到可核实的后续独立争议研究，因此讨论页只给开放问题，不替学界定论。"><div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">讨论</span></div><div class="stage"><h2 class="claim">原文、图表与讨论入口</h2><p class="sub">阅读论文时可沿着本报告的四个研究问题回查</p><div class="dw-grid"><div class="dw-card"><b>原文</b><p>Liao et al., Defensive Writing in GPT Models, arXiv:2610.11355v2，2026-10-13。</p></div><div class="dw-card"><b>图表</b><p>本报告使用用户提供的论文图 1–3 与证据表构造图；流程与对照表按原文重排。</p></div><div class="dw-card"><b>讨论</b><p>如何区分“修正过强主张”与“多余限定”？只看一段话时，谁有权判断证据够不够？</p></div></div><div class="dw-source">原文：https://arxiv.org/html/2610.11355v2</div></div><div class="foot"><span>Liao et al. · Defensive Writing in GPT Models · arXiv:2610.11355v2 (2026)</span></div></section></div>
+<div class="hot l" id="hotL"></div>
+<div class="hot r" id="hotR"></div>
+<div id="prog"></div>
+<div id="hud"><div id="dots"></div><span id="counter"></span></div>
+<div id="notes"></div>
+<div id="ov"><div class="ovh">总览 · 按 O 或 Esc 关闭</div></div>
+<script>
+
+/* =====================================================================
+   幻灯片控制器
+   ---------------------------------------------------------------------
+   和站点首页那份同一套约定：只有一个状态变量 idx，键盘 / 点击 / 触摸 /
+   滚轮 / 总览 五个入口全部收敛到 go(n)，避免多处各自维护状态导致不同步。
+   在首页的基础上多了两个：N 开关备注，O 开关总览。
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dotsBox = document.getElementById('dots');
+  var counter = document.getElementById('counter');
+  var prog    = document.getElementById('prog');
+  var total   = slides.length;
+  var idx     = 0;
+
+  /* 生成进度点，点击可直达 */
+  slides.forEach(function (_, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', '第 ' + (i + 1) + ' 页');
+    b.addEventListener('click', function () { go(i); });
+    dotsBox.appendChild(b);
+  });
+  var dots = Array.prototype.slice.call(dotsBox.children);
+
+  /* 总览：把每页标题抽出来做成一张卡片 */
+  var ov = document.getElementById('ov');
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  slides.forEach(function (s, i) {
+    var h = s.querySelector('.claim, h1');
+    var label = s.querySelector('.banner .sec');
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = '<span class="n">' + String(i + 1).padStart(2, '0') + '</span>' +
+                  (h ? h.textContent : (label ? label.textContent : ''));
+    b.addEventListener('click', function () { go(i); toggleOv(false); });
+    grid.appendChild(b);
+  });
+  ov.appendChild(grid);
+
+  /**
+   * 跳转到第 n 页
+   * @param {number} n 目标下标，越界自动夹到 [0, total-1]
+   */
+  function go(n) {
+    idx = Math.max(0, Math.min(total - 1, n));
+    slides.forEach(function (s, i) { s.classList.toggle('active', i === idx); });
+    dots.forEach(function (d, i) { d.classList.toggle('on', i === idx); });
+    counter.textContent = (idx + 1) + ' / ' + total;
+    prog.style.width = (total <= 1 ? 100 : (idx / (total - 1)) * 100) + '%';
+    var nt = document.getElementById('notes');
+    var text = slides[idx].getAttribute('data-notes') || '';
+    nt.innerHTML = text ? '<div class="nt">讲稿</div>' + text : '<div class="nt">（本页没有讲稿）</div>';
+    // 地址栏跟着页码走，方便直接甩一个「第 14 页」的链接给别人
+    try { history.replaceState(null, '', '#' + (idx + 1)); } catch (e) { /* file:// 下可能被拒 */ }
+    // 移动端是长文档滚动模式，换页后需要把视口拉回顶部
+    if (window.innerWidth <= 720) window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function next() { go(idx + 1); }
+  function prev() { go(idx - 1); }
+  function toggleOv(on) {
+    var show = (on === undefined) ? !document.body.classList.contains('show-ov') : on;
+    document.body.classList.toggle('show-ov', show);
+  }
+
+  /* 键盘：方向键 / 空格 / PgUp / PgDn / Home / End / 数字键直达 / O 总览 / N 备注 / F 全屏 */
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (document.body.classList.contains('show-ov') && e.key !== 'o' && e.key !== 'O' && e.key !== 'Escape') return;
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': case 'Enter':
+        e.preventDefault(); next(); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp': case 'Backspace':
+        e.preventDefault(); prev(); break;
+      case 'Home': e.preventDefault(); go(0); break;
+      case 'End':  e.preventDefault(); go(total - 1); break;
+      case 'o': case 'O': case 'Escape': e.preventDefault(); toggleOv(); break;
+      case 'n': case 'N':
+        e.preventDefault(); document.body.classList.toggle('show-notes'); break;
+      case 'f': case 'F':
+        e.preventDefault();
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        break;
+      default:
+        if (/^[1-9]$/.test(e.key)) { e.preventDefault(); go(parseInt(e.key, 10) - 1); }
+    }
+  });
+
+  document.getElementById('hotL').addEventListener('click', prev);
+  document.getElementById('hotR').addEventListener('click', next);
+
+  /* 触摸滑动：只认「横向为主且足够长」的滑动，避免和纵向滚动冲突 */
+  var tx = 0, ty = 0;
+  document.addEventListener('touchstart', function (e) {
+    tx = e.changedTouches[0].clientX;
+    ty = e.changedTouches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    var dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) next(); else prev();
+    }
+  }, { passive: true });
+
+  /* 滚轮翻页：桌面端启用，带 620ms 节流防止一次滑动跳多页 */
+  var wheelLock = false;
+  document.addEventListener('wheel', function (e) {
+    if (window.innerWidth <= 720) return;   // 移动端保留原生滚动
+    if (document.body.classList.contains('show-ov')) return;
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 12) return;
+    wheelLock = true;
+    setTimeout(function () { wheelLock = false; }, 620);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  /* 打开时先看地址栏的 #N，没有就从头开始 */
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+
+</script>
+</body>
+</html>
