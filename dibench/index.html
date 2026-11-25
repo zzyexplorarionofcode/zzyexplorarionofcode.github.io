@@ -1,0 +1,747 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DIBench · 移动智能体的决策完整性评测</title><meta name="description" content="DIBench 中文组会汇报。配对选择实验、决策完整性、七张实验数据表和逐页讲稿。"><link rel="icon" href="data:,"><style>
+/* ═══════════════ 设计变量 ═══════════════
+     配色与版式按参考 PPT 实测取得：
+       横幅 #20517C · 强调 #FF6B35 · 正文 #222222
+       副文 #555555 · 浅卡 #EDEDED · 深卡 #000000
+     全篇衬线字体，与参考稿保持一致。
+     ═══════════════════════════════════════ */
+  :root{
+    --banner:  #20517C;
+    --bg:      #FFFFFF;
+    --ink:     #000000;
+    --body:    #222222;
+    --muted:   #555555;
+    --accent:  #FF6B35;
+    --card-lt: #EDEDED;
+    --card-dk: #000000;
+    --hair:    #B8BCC4;
+    --serif:   Georgia, "Times New Roman", "Songti SC", "SimSun", "STSong", serif;
+    --fig-h:   clamp(240px, 48vh, 420px); /* 单图基准高度：图整体变小、不再撑满整屏 */
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+
+  html,body{
+    height:100%;
+    background:#E9EAEC;
+    color:var(--body);
+    font-family:var(--serif);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  #deck{position:fixed;inset:0;}
+
+  .slide{
+    position:absolute;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    background:var(--bg);
+    overflow:hidden;
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  .slide.active{display:flex;opacity:1;}
+
+  /* ── 顶部蓝色横幅 ── */
+  .banner{
+    flex:0 0 auto;
+    background:var(--banner);
+    height:clamp(44px,12%,96px);
+    display:flex;align-items:center;
+    padding:0 clamp(1rem,3.6%,46px);
+    gap:clamp(.5rem,1.4vw,1.1rem);
+    color:#fff;
+  }
+  .banner .num{font-size:clamp(1.3rem,3.6vw,2.8rem);font-weight:700;line-height:1;}
+  .banner .slash{
+    width:2px;height:clamp(1.2rem,3vw,2.3rem);
+    background:#fff;transform:rotate(18deg);opacity:.85;flex:0 0 auto;
+  }
+  .banner .sec{
+    font-size:clamp(.85rem,2.6vw,2rem);
+    font-weight:400;line-height:1.1;text-transform:uppercase;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .banner .zh{
+    font-size:clamp(.55rem,.95vw,.78rem);
+    color:#B9CEDF;letter-spacing:.2em;margin-left:.4rem;white-space:nowrap;
+  }
+
+  /* ═══════════════ 布局基调 ═══════════════
+     关键约定：.stage 的直接子元素一律 flex:0 0 auto（不许被压缩），
+     只有标了 .grow 的图区才吸收剩余空间。
+     之前把 .cols 也设成 min-height:0，导致 flex 把它压成 0 高、
+     内部网格行溢出后互相叠在一起——这条约定就是为了根治那个问题。
+     ═══════════════════════════════════════ */
+  .stage{
+    flex:1 1 auto;
+    min-height:0;
+    display:flex;flex-direction:column;
+    justify-content:center; /* 内容垂直居中：纯文字页不再「上满下空」 */
+    padding:clamp(.7rem,2.2%,1.7rem) clamp(1rem,3.6%,46px) 0;
+    overflow:hidden;
+  }
+  .stage > *{flex:0 0 auto;}
+
+  .claim{
+    font-size:clamp(1.15rem,2.6vw,2rem);
+    font-weight:700;color:var(--ink);line-height:1.26;
+    margin-bottom:clamp(.25rem,.8%,.55rem);
+  }
+  .sub{
+    font-size:clamp(.78rem,1.4vw,1.08rem);
+    color:var(--muted);line-height:1.45;font-style:italic;
+    margin-bottom:clamp(.5rem,1.6%,1.1rem);
+  }
+  .sub.plain{font-style:normal;}
+
+  /* ── 多列 ── */
+  .cols{
+    display:grid;grid-template-columns:repeat(var(--n,3),1fr);
+    gap:clamp(.7rem,2.6%,2rem);
+    margin-bottom:clamp(.4rem,1.3%,.9rem);
+  }
+  .cols.c2{--n:2;} .cols.c3{--n:3;} .cols.c4{--n:4;}
+
+  .col{min-width:0;}
+  .col .rule{height:2px;background:var(--ink);margin-bottom:clamp(.35rem,1%,.7rem);}
+  .col.accent .rule{background:var(--accent);}
+
+  .label{
+    font-size:clamp(.6rem,1.05vw,.82rem);
+    letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);font-weight:700;
+    margin-bottom:clamp(.24rem,.8%,.5rem);
+  }
+  .col.accent .label{color:var(--accent);}
+
+  .col h3{
+    font-size:clamp(.9rem,1.7vw,1.3rem);
+    font-weight:700;color:var(--ink);line-height:1.28;
+    margin-bottom:clamp(.24rem,.8%,.5rem);
+  }
+  .col p{
+    font-size:clamp(.76rem,1.35vw,1.02rem);
+    line-height:1.55;color:var(--body);
+  }
+  .col p + p{margin-top:.42em;}
+
+  /* ── 黑白对比卡 ── */
+  .vs{display:flex;align-items:stretch;gap:clamp(.4rem,1.2%,1rem);margin:clamp(.3rem,1%,.7rem) 0;}
+  .vs .box{
+    flex:1 1 0;display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:clamp(.45rem,1.2%,.85rem);
+    font-size:clamp(.8rem,1.5vw,1.12rem);font-weight:700;line-height:1.3;
+  }
+  .vs .box.lt{background:var(--card-lt);color:var(--ink);}
+  .vs .box.dk{background:var(--card-dk);color:#fff;}
+  .vs .arrow{
+    flex:0 0 auto;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:.25em;min-width:clamp(2rem,7%,4rem);
+  }
+  .vs .arrow .ln{width:100%;height:2px;background:var(--accent);}
+  .vs .arrow .tx{
+    font-size:clamp(.58rem,.95vw,.72rem);color:var(--accent);
+    font-weight:700;letter-spacing:.06em;text-align:center;line-height:1.15;
+  }
+
+  /* ── 黑色强调框 ── */
+  .callout{
+    background:var(--card-dk);color:#fff;
+    padding:clamp(.5rem,1.4%,.9rem) clamp(.8rem,2.2%,1.4rem);
+    font-size:clamp(.9rem,1.6vw,1.22rem);
+    font-weight:700;line-height:1.38;text-align:center;
+  }
+  .callout small{
+    display:block;margin-top:.4em;font-size:.74em;font-weight:400;
+    color:#C9C9C9;font-style:italic;
+  }
+
+  /* ═══════════════ 图区 ═══════════════
+     .fig 是竖排的「图框 + 图注」；.frame 负责按可用高度自适应缩放。
+     图片用 max-width/max-height 双向约束，永不溢出、永不变形。
+     ═══════════════════════════════════════ */
+  .fig{display:flex;flex-direction:column;min-height:0;}
+  .fig .frame{
+    border:1.5px dashed var(--hair);
+    padding:clamp(.25rem,.7%,.5rem);
+    background:#fff;overflow:hidden;
+    box-sizing:border-box;
+  }
+  .fig .frame img{
+    display:block;
+    width:100%;height:100%;
+    object-fit:contain;
+  }
+  .fig .cap{
+    flex:0 0 auto;
+    font-size:clamp(.48rem,.82vw,.65rem);
+    color:var(--muted);font-style:italic;line-height:1.35;
+    margin-top:clamp(.2rem,.6%,.35rem);
+  }
+  /* 通栏单图：靠左、定高，宽度 = 高 × 比例，不再撑满剩余空间 */
+  .fig.grow{flex:0 0 auto;min-height:0;}
+  .fig.grow .frame{
+    flex:0 0 auto;
+    align-self:flex-start;  /* 图统一靠左 */
+    width:min(100%, calc(var(--fig-h) * var(--ar,2)));
+    aspect-ratio:var(--ar,2);
+  }
+
+  .fig-row{
+    display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr;
+    gap:clamp(.5rem,1.6%,1.2rem);
+  }
+  .fig-row.c3{grid-template-columns:repeat(3,1fr);}
+  .fig-row.split{grid-template-columns:1.05fr .95fr;}
+  .fig-row > .fig{
+    min-height:0;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .fig-row .fig .frame{
+    width:100%;
+    aspect-ratio:var(--ar,2);
+    max-height:100%;
+  }
+  .fig-row.grow{flex:0 0 auto;min-height:0;}
+  /* 左右分栏里的文字栏：自身可滚动，避免把图挤扁 */
+  .fig-row.split > .side{min-height:0;overflow:hidden;}
+
+  /* ── 流程条 ── */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(.35rem,1.1%,.75rem);}
+  .flow .st{border:1.5px dashed var(--hair);padding:clamp(.32rem,.9%,.6rem);}
+  .flow .st .t{font-size:clamp(.68rem,1.2vw,.95rem);font-weight:700;color:var(--banner);margin-bottom:.25em;}
+  .flow .st .d{font-size:clamp(.6rem,1.05vw,.8rem);color:var(--muted);line-height:1.45;}
+
+  /* ── 大数字 ── */
+  .stats{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(.8rem,4%,3rem);}
+  .stat{text-align:center;}
+  .stat .n{
+    font-size:clamp(1.3rem,3vw,2.4rem);
+    font-weight:700;color:var(--banner);line-height:1.1;
+    font-variant-numeric:tabular-nums;
+  }
+  .stat .l{font-size:clamp(.62rem,1.1vw,.88rem);color:var(--muted);margin-top:.3em;line-height:1.4;}
+
+  /* ── 列表 ── */
+  ul.pts{list-style:none;}
+  ul.pts li{
+    position:relative;padding-left:1.1em;
+    margin-bottom:clamp(.2rem,.7%,.4rem);
+    font-size:clamp(.76rem,1.35vw,1.02rem);
+    line-height:1.5;color:var(--body);
+  }
+  ul.pts li:last-child{margin-bottom:0;}
+  ul.pts li::before{content:"—";position:absolute;left:0;color:var(--hair);}
+  b,strong{color:var(--ink);font-weight:700;}
+  .hi{color:var(--accent);font-weight:700;}
+  .tl{color:var(--banner);font-weight:700;}
+
+  /* ── 页脚 ── */
+  .foot{
+    flex:0 0 auto;
+    display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid var(--hair);
+    margin:0 clamp(1rem,3.6%,46px);
+    padding:clamp(.28rem,.75%,.45rem) 0 clamp(.42rem,1.1%,.7rem);
+    font-size:clamp(.46rem,.78vw,.62rem);
+    color:var(--muted);
+  }
+
+  /* ── 封面 ── */
+  .cover .stage{justify-content:center;align-items:center;text-align:center;padding-bottom:1.5rem;}
+  .cover h1{
+    font-size:clamp(1rem,2.8vw,2.2rem);
+    font-weight:700;color:var(--ink);line-height:1.22;
+    max-width:22ch;margin:0 auto clamp(.5rem,1.8%,1.2rem);
+  }
+  .cover .zh-title{
+    font-size:clamp(.82rem,1.9vw,1.4rem);
+    color:var(--banner);font-weight:700;
+    margin-bottom:clamp(.9rem,3.5%,2.2rem);line-height:1.35;
+  }
+  .cover .meta{font-size:clamp(.62rem,1.1vw,.86rem);color:var(--muted);line-height:1.8;}
+  .cover .venue{
+    flex:0 0 auto;text-align:center;
+    padding-bottom:clamp(1rem,4%,2.4rem);
+    font-size:clamp(.85rem,1.9vw,1.45rem);
+    font-weight:700;color:var(--banner);
+  }
+
+  /* ── 目录 ── */
+  .toc{display:grid;gap:clamp(.15rem,.7%,.45rem);}
+  .toc .it{
+    display:grid;grid-template-columns:clamp(1.4rem,3vw,2.4rem) 1fr;
+    align-items:baseline;gap:clamp(.5rem,1.5%,1rem);
+    padding:clamp(.26rem,.85%,.55rem) 0;
+    border-bottom:1px solid #E8E9EB;
+  }
+  .toc .n{font-size:clamp(.9rem,1.9vw,1.5rem);font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .toc .t{font-size:clamp(.85rem,1.55vw,1.2rem);font-weight:700;color:var(--ink);}
+  .toc .d{font-size:clamp(.65rem,1.1vw,.85rem);color:var(--muted);margin-top:.12em;}
+
+  /* ── 控制条 ── */
+  #prog{position:fixed;top:0;left:0;height:3px;background:var(--accent);z-index:60;transition:width .3s ease;}
+  #hud{
+    position:fixed;right:clamp(.6rem,2%,1.5rem);bottom:clamp(.4rem,1.4%,.95rem);
+    display:flex;align-items:center;gap:.7rem;z-index:50;
+  }
+  #dots{display:flex;gap:5px;}
+  #dots button{
+    width:7px;height:7px;border-radius:50%;border:none;
+    background:#C7CBD1;cursor:pointer;padding:0;
+    transition:background .2s,transform .2s;
+  }
+  #dots button:hover{background:var(--muted);transform:scale(1.3);}
+  #dots button.on{background:var(--banner);transform:scale(1.3);}
+  #counter{font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .hot{position:fixed;top:0;bottom:0;width:9%;z-index:40;cursor:pointer;}
+  .hot.l{left:0;} .hot.r{right:0;}
+
+  /* ═══════════════ 响应式 ═══════════════ */
+  @media (max-width:1000px){
+    .cols.c3,.cols.c4{--n:2;}
+    .flow{grid-template-columns:repeat(2,1fr);}
+    .fig-row.c3{grid-template-columns:1fr 1fr;}
+  }
+  /* 矮屏：优先削横幅与留白，把高度让给图 */
+  @media (max-height:700px){
+    .banner{height:clamp(40px,10%,72px);}
+    .stage{padding-top:.55rem;}
+    .claim{margin-bottom:.2rem;}
+    .sub{margin-bottom:.5rem;}
+  }
+  /* 窄屏：整页改为可滚动的长文档，图区不再吸收高度 */
+  @media (max-width:720px){
+    html,body{overflow:auto;}
+    .slide{position:relative;inset:auto;min-height:100vh;overflow:visible;}
+    .slide.active{display:flex;}
+    .stage{overflow:visible;padding-bottom:1rem;justify-content:flex-start;}
+    .stage > *,.fig.grow,.fig-row.grow{flex:0 0 auto;}
+    .cols.c2,.cols.c3,.cols.c4{--n:1;}
+    .flow,.fig-row,.fig-row.c3,.fig-row.split{grid-template-columns:1fr;grid-template-rows:none;}
+    .fig .frame{max-height:none;}
+    .vs{flex-direction:column;}
+    .vs .arrow .ln{width:55%;}
+    .hot{display:none;}
+    #hud{right:auto;left:50%;transform:translateX(-50%);}
+  }
+
+  /* ═══════════════ 以下为汇报页新增 ═══════════════
+     站点首页那份样式表里没有的几条：真表格、引文块、竖排小卡、
+     公式块、流程条、备注面板、总览。上面的设计变量原样沿用。 */
+
+  /* ── 真表格（本站首页用的是表格截图，这份讲稿改成矢量表格）── */
+  .tbl-wrap{overflow:auto;min-width:0;}
+  table.tbl{
+    width:100%;border-collapse:collapse;table-layout:fixed;
+    font-size:calc(clamp(.58rem,1vw,.8rem) * var(--fs,1));
+  }
+  table.tbl th,table.tbl td{
+    padding:.45em .55em;border:1px solid #E3E5E9;line-height:1.38;
+    text-align:center;color:var(--body);vertical-align:middle;
+    overflow-wrap:break-word;
+  }
+  table.tbl th{background:#E8EAEE;color:var(--ink);font-weight:700;}
+  table.tbl td:first-child,table.tbl th:first-child{text-align:left;}
+  table.tbl tbody tr:nth-child(even) td{background:var(--card-lt);}
+  table.tbl td.b{font-weight:700;color:var(--ink);}
+
+  /* ── 卡片栏：密页把行距收紧一点 ── */
+  .cols.tight{gap:clamp(.6rem,2%,1.4rem);}
+  .col.green .rule{background:#1E7A4B;}
+  .col.green .label{color:#1E7A4B;}
+  .col.blue .rule{background:#1F4E9C;}
+  .col.blue .label{color:#1F4E9C;}
+  .col.muted .rule{background:var(--hair);}
+
+  /* ── 左图右文 / 左表右文的通用分栏 ── */
+  .split{
+    display:grid;align-items:start;min-height:0;
+    gap:clamp(.9rem,2.6%,2rem);margin-bottom:clamp(.3rem,1%,.6rem);
+  }
+  .split.media{grid-template-columns:1.02fr .98fr;}
+  .split.table{grid-template-columns:1.15fr .85fr;}
+  .split.formula{grid-template-columns:.95fr 1.05fr;}
+  .split > *{min-width:0;}
+
+  /* ── 竖排小卡：图旁边那几条说明 ── */
+  .stack{display:grid;gap:clamp(.6rem,1.8%,1.1rem);align-content:start;}
+  .mini{border-top:2px solid var(--ink);padding-top:.5em;}
+  .mini.accent{border-color:var(--accent);}
+  .mini.green{border-color:#1E7A4B;}
+  .mini.blue{border-color:#1F4E9C;}
+  .mini.muted{border-color:var(--hair);}
+  .mini h4{
+    font-size:clamp(.88rem,1.6vw,1.18rem);font-weight:700;color:var(--ink);
+    line-height:1.3;margin-bottom:.32em;
+  }
+  .mini p{font-size:clamp(.74rem,1.28vw,.98rem);line-height:1.55;color:var(--body);}
+  .mini .label{margin-bottom:.36em;}
+  .rcol{display:grid;gap:clamp(.7rem,2%,1.1rem);align-content:start;}
+
+  /* ── 图框：按真实宽高比撑开，图不会被拉变形 ── */
+  .fig{display:flex;flex-direction:column;min-height:0;min-width:0;}
+  .fig .frame{
+    border:1.5px dashed var(--hair);background:#fff;
+    padding:clamp(.22rem,.6%,.45rem);box-sizing:border-box;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fig.fit .frame{aspect-ratio:var(--ar,1.6);width:100%;}
+  /* 通栏图：按可用高度反推宽度，图框正好贴住图，不留白带 */
+  .fig.center{align-items:center;}
+  .fig.center .frame{width:min(100%, calc(var(--fh,40vh) * var(--ar,1.6)));aspect-ratio:var(--ar,1.6);}
+  .fig .frame img{display:block;width:100%;height:100%;object-fit:contain;}
+  .fig .cap{
+    font-size:clamp(.5rem,.85vw,.68rem);color:var(--muted);font-style:italic;
+    line-height:1.4;margin-top:.3em;
+  }
+
+  /* ── 公式块 ── */
+  .frows{display:grid;gap:clamp(.4rem,1.4%,.85rem);}
+  .frow .k{font-size:clamp(.78rem,1.4vw,1.02rem);font-weight:700;color:var(--ink);}
+  .frow .v{font-size:clamp(.7rem,1.22vw,.94rem);color:var(--body);line-height:1.5;margin-top:.16em;}
+  .fbox{
+    background:var(--card-lt);padding:clamp(.8rem,2.2%,1.5rem) clamp(.9rem,2.4%,1.6rem);
+    text-align:center;
+  }
+  .fbox .fmain{font-size:clamp(.82rem,1.5vw,1.1rem);font-weight:700;color:var(--ink);line-height:1.4;}
+  .fbox .fnote{font-size:clamp(.62rem,1.08vw,.84rem);color:var(--muted);line-height:1.5;margin-top:.9em;}
+
+  /* ── 流程条 ── */
+  .flow{
+    display:grid;grid-template-columns:repeat(var(--n,4),1fr);
+    gap:clamp(.35rem,1.1%,.7rem);margin-bottom:clamp(.6rem,1.8%,1.1rem);
+  }
+  .flow .st{
+    border:1.5px solid var(--hair);background:var(--card-lt);
+    padding:clamp(.45rem,1.2%,.7rem) clamp(.35rem,.9%,.55rem);
+    font-size:clamp(.6rem,1.06vw,.82rem);line-height:1.4;text-align:center;color:var(--body);
+  }
+  .flow .st.last{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+
+  /* ── 例子的设定条与两张并排的表 ── */
+  .setup{
+    background:var(--card-lt);text-align:center;
+    padding:clamp(.4rem,1.1%,.65rem) clamp(.6rem,1.6%,1rem);
+    font-size:clamp(.66rem,1.15vw,.88rem);color:var(--body);
+    margin-bottom:clamp(.6rem,1.8%,1rem);
+  }
+  .panels{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.9rem,2.6%,2rem);margin-bottom:clamp(.6rem,1.8%,1rem);}
+  .panel .ptitle{font-size:clamp(.62rem,1.08vw,.84rem);color:var(--muted);margin-bottom:.4em;}
+
+  /* ── 引文块（正例 / 反例）── */
+  .quoteboxes{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.8rem,2.4%,1.8rem);margin-bottom:clamp(.7rem,2%,1.2rem);}
+  .quotebox{padding:clamp(.6rem,1.6%,1rem) clamp(.7rem,1.9%,1.2rem);}
+  .quotebox.pos{background:#ECF5EF;}
+  .quotebox.neg{background:var(--card-lt);}
+  .quotebox q{
+    display:block;font-style:italic;color:var(--ink);
+    font-size:clamp(.72rem,1.28vw,.98rem);line-height:1.45;
+  }
+  .quotebox .nb{display:block;margin-top:.7em;font-size:clamp(.64rem,1.1vw,.86rem);line-height:1.5;}
+  .quotebox.pos .nb{color:#1E7A4B;}
+  .quotebox.neg .nb{color:var(--muted);}
+
+  /* ── 灰色小字注 ── */
+  .src{font-size:clamp(.56rem,.95vw,.72rem);color:var(--muted);line-height:1.45;margin-top:.5em;}
+  .lead{font-size:clamp(.76rem,1.35vw,1.02rem);color:var(--body);line-height:1.55;margin-bottom:clamp(.5rem,1.6%,1rem);}
+
+  /* ── 封面（分栏）与收尾页 ── */
+  .cover.wide .stage{align-items:stretch;text-align:left;justify-content:center;}
+  .cover-grid{
+    display:grid;grid-template-columns:1.02fr .98fr;
+    gap:clamp(1rem,3.4%,2.6rem);align-items:center;width:100%;
+  }
+  .cover .eyebrow{
+    font-size:clamp(.58rem,1.05vw,.82rem);letter-spacing:.26em;text-transform:uppercase;
+    color:var(--accent);font-weight:700;margin-bottom:1em;
+  }
+  .cover-grid h1{
+    font-size:clamp(1.1rem,2.9vw,2.3rem);font-weight:700;color:var(--ink);
+    line-height:1.24;margin:0 0 .7em;max-width:none;
+  }
+  .cover .en-title{
+    font-size:clamp(.64rem,1.12vw,.88rem);color:var(--muted);
+    font-style:italic;line-height:1.55;margin-bottom:1.4em;
+  }
+  .cover .hr{width:34%;height:2px;background:var(--ink);margin-bottom:1.3em;}
+  .cover .meta{font-size:clamp(.6rem,1.06vw,.84rem);color:var(--body);line-height:1.9;}
+  .cover .meta .dim{color:var(--muted);}
+  .cover-fig{min-width:0;display:flex;justify-content:center;}
+  .cover-fig .fig{width:100%;}
+
+  .thanks .stage{justify-content:center;align-items:center;text-align:center;}
+  .thanks h1{font-size:clamp(1.5rem,4.2vw,3rem);font-weight:700;color:var(--ink);margin-bottom:.5em;}
+  .thanks .hr{width:80px;height:2px;background:var(--hair);margin:1.6em auto;}
+
+  /* ── 备注面板（按 N 开关）与总览（按 O 开关）── */
+  #notes{
+    position:fixed;left:0;right:0;bottom:0;z-index:70;display:none;
+    max-height:40vh;overflow:auto;background:#15161A;color:#E6E6E6;
+    padding:1.2rem clamp(1rem,4%,3rem) 1.6rem;
+    font-size:.8rem;line-height:1.75;white-space:pre-wrap;
+  }
+  body.show-notes #notes{display:block;}
+  #notes .nt{color:var(--accent);font-weight:700;letter-spacing:.18em;font-size:.66rem;margin-bottom:.7em;}
+
+  #ov{
+    position:fixed;inset:0;z-index:80;display:none;overflow:auto;
+    background:rgba(255,255,255,.98);padding:clamp(1.4rem,4%,3rem) clamp(1rem,5%,4rem);
+  }
+  body.show-ov #ov{display:block;}
+  #ov .ovh{font-size:.7rem;letter-spacing:.24em;color:var(--accent);font-weight:700;margin-bottom:1.2rem;}
+  #ov .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.8rem;}
+  #ov button{
+    font-family:inherit;text-align:left;cursor:pointer;background:#fff;
+    border:1px solid var(--hair);padding:.7rem .85rem;color:var(--body);
+    font-size:clamp(.66rem,1.1vw,.82rem);line-height:1.45;transition:border-color .15s,transform .15s;
+  }
+  #ov button:hover{border-color:var(--accent);transform:translateY(-2px);}
+  #ov button .n{color:var(--accent);font-weight:700;margin-right:.45em;font-variant-numeric:tabular-nums;}
+
+  @media (max-width:1000px){
+    .split.media,.split.table,.split.formula{grid-template-columns:1fr;}
+    .panels,.quoteboxes,.cover-grid{grid-template-columns:1fr;}
+  }
+  @media (max-width:720px){
+    .flow{grid-template-columns:1fr 1fr;}
+    .fig.center .frame{height:auto;width:100%;}
+    #notes{position:static;max-height:none;}
+  }
+
+
+  /* ── ALERT 专用覆盖：表格按 PPT 的无竖线样式，公式图自适应 ── */
+  table.tbl th,table.tbl td{border:none;border-bottom:1px solid #E3E5E9;}
+  table.tbl thead th{border-bottom:1px solid #C9CED6;}
+  table.tbl tbody tr:nth-child(even) td{background:#F7F8FA;}
+  table.tbl td.hl{background:#FDEDE6 !important;font-weight:700;color:var(--ink);}
+  table.tbl tr.hl td{background:#FDEDE6 !important;font-weight:700;color:var(--ink);}
+  .fig .frame{border:none;padding:0;}
+  .fbox{background:transparent;padding:.15rem 0;}
+  .fbox img{max-width:100%;height:auto;display:block;margin:0 auto;}
+  .fbox.eq{padding:.2rem 0;}
+  .col .fbox.eq{height:120px;display:flex;align-items:center;justify-content:center;}
+  .col .fbox.eq img{max-height:105px;width:auto;max-width:100%;}
+  .frow .v img{max-width:100%;height:auto;display:block;margin:.25em 0 .3em;}
+  .callout{margin-top:.65rem;}
+  .tbl-wrap{margin-bottom:.35rem;}
+  table.tbl{font-size:calc(clamp(.62rem,1.05vw,.95rem)*var(--fs,1));}
+  /* 内容页改为顶部对齐，更接近 PPT 的阅读顺序 */
+  .slide:not(.cover):not(.thanks) .stage{justify-content:flex-start;padding-top:clamp(1.2rem,3.6vh,2.4rem);}
+  /* 黑色结论条贴到内容区底部，和 PPT 的通栏位置一致 */
+  .stage > .callout{margin-top:auto;}
+
+/* ── OpenAI–Hugging Face 报告新增：代码块、引文、时间线 ── */
+.code{background:#131B23;color:#D8E3EC;font-family:var(--font-mono);font-size:clamp(.56rem,.95vw,.76rem);line-height:1.55;padding:clamp(.55rem,1.4%,.85rem) clamp(.65rem,1.7%,1rem);white-space:pre-wrap;overflow:auto;border-radius:2px;}
+.code .c{color:#FFB496;}
+.quote{border-left:3px solid var(--accent);padding:.15em 0 .15em .9em;margin:.45em 0;}
+.quote .en{font-style:italic;color:var(--muted);font-size:clamp(.56rem,.95vw,.76rem);line-height:1.45;}
+.quote .zh{font-size:clamp(.68rem,1.12vw,.88rem);color:var(--body);line-height:1.5;margin-top:.2em;}
+.timeline{display:grid;grid-template-columns:1fr 1fr;gap:clamp(.45rem,1.3%,.85rem) clamp(1rem,3%,2rem);}
+.timeline .item{display:grid;grid-template-columns:4.8rem 1fr;gap:.55em;border-top:1px solid #E3E5E9;padding-top:.38em;}
+.timeline .d{font-family:var(--font-mono);font-size:clamp(.54rem,.9vw,.7rem);font-weight:700;color:var(--accent);white-space:nowrap;}
+.timeline .t{font-size:clamp(.64rem,1.08vw,.84rem);line-height:1.4;color:var(--body);}
+.small{font-size:clamp(.58rem,.98vw,.72rem);color:var(--muted);line-height:1.45;}
+.qlist{display:grid;gap:.9em;}
+.qlist .q{border-top:1px solid #E3E5E9;padding-top:.55em;}
+.qlist .q .n{font-family:var(--font-mono);font-size:.7em;color:var(--accent);font-weight:700;letter-spacing:.1em;}
+.qlist .q p{font-size:clamp(.78rem,1.35vw,1rem);line-height:1.5;margin-top:.2em;}
+@media(max-width:720px){.timeline{grid-template-columns:1fr;}}
+
+
+:root{--bg:#fbfaf7;--hair:#d2d3d0;--font-mono:Consolas,monospace}
+.stage{padding-bottom:22px!important}.sub{font-style:normal;font-size:18px;line-height:1.5;margin-bottom:20px}.claim{font-size:32px;line-height:1.3}.banner .zh{font-size:14px}.banner .sec{font-size:29px}.foot{min-height:38px;font-size:11px;padding-right:340px}.foot a{color:inherit}
+.body{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:18px}.split-o{display:grid;grid-template-columns:1.48fr 1fr;gap:34px;align-items:center;min-height:0}.split-o.equal{grid-template-columns:1fr 1fr}.split-o.wide{grid-template-columns:1.8fr 1fr}.split-o.reverse{grid-template-columns:1fr 1.65fr}.stack{display:flex;flex-direction:column;gap:20px;min-width:0}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}.four{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.point{border-top:2px solid var(--banner);padding-top:13px}.point.orange{border-color:var(--accent)}.point h3{font-size:23px;color:var(--banner);margin-bottom:9px;line-height:1.35}.point p,.point li,.prose{font-size:20px;line-height:1.65}.point small{display:block;font-size:14px;color:var(--muted);line-height:1.5;margin-top:9px}.numline{font-size:52px;font-weight:700;color:var(--banner);line-height:1.2;margin:7px 0 12px}.numline.orange{color:var(--accent)}
+.panel-o{background:#f0f1ef;padding:24px;border-top:3px solid var(--banner);min-width:0}.panel-o h3{font-size:24px;line-height:1.4;margin-bottom:12px}.panel-o p{font-size:19px;line-height:1.6}.panel-o.orange{border-color:var(--accent);background:#f8eee7}.panel-o.dark{background:#20517c;color:white}.panel-o.dark h3,.panel-o.dark strong{color:white}.kicker{font-size:13px;letter-spacing:.12em;color:var(--banner);font-weight:bold;margin-bottom:12px}.tag{display:inline-block;background:#e7edf1;color:var(--banner);padding:4px 9px;font-size:13px;margin-bottom:10px}.tag.orange{background:#f7e6db;color:#b64b23}
+.img{width:100%;max-height:460px;object-fit:contain;display:block}.img.tall{max-height:550px}.caption{font-size:13px;line-height:1.5;color:var(--muted);margin-top:9px}.fig-o{min-width:0}.chart{width:100%;max-height:370px;object-fit:contain;display:block}.chart.tall{max-height:460px}.chart.paired{max-height:340px}.body>*{flex-shrink:0}.note{font-size:14px;line-height:1.5;color:#626262}.callout{flex:0 0 auto!important;margin-top:16px!important;font-size:20px;padding:14px 22px;line-height:1.45}.callout strong{color:#fff}.callout .hi{color:#ffb28e}
+.o-table{width:100%;border-collapse:collapse;font-size:19px;line-height:1.45}.o-table th{background:#e9ecee;color:var(--banner);font-weight:bold}.o-table th,.o-table td{text-align:left;padding:14px 16px;border-bottom:1px solid #cfd4d7}.o-table tr.tint td{background:#eaf0f3}.o-table .ci{display:block;color:#606b73;font-size:13px;white-space:nowrap}.o-table.compact{font-size:17px}.o-table.compact td,.o-table.compact th{padding:12px}.o-table td.blue{color:var(--banner);font-weight:bold}.o-table td.orange{color:#c45c2d;font-weight:bold}
+.flow-o{display:flex;align-items:stretch;gap:12px}.flow-o .node{flex:1;min-width:0;background:#eaf0f3;border-top:3px solid var(--banner);padding:22px 18px;font-size:21px;line-height:1.5;text-align:center}.flow-o .node small{display:block;font-size:15px;color:#586675;margin-top:7px}.flow-o .node.orange{border-color:var(--accent);background:#f8eade}.flow-o .arr{align-self:center;color:var(--accent);font-size:28px;font-style:normal}.flow-o.vertical{flex-direction:column;gap:8px}.flow-o.vertical .node{padding:13px}.flow-o.vertical .arr{transform:rotate(90deg)}
+.quote-o{font-size:24px;line-height:1.65;border-left:5px solid var(--accent);padding:20px 25px;background:#f1f1ed}.row{display:flex;align-items:center;gap:16px}.pill{display:inline-block;border:1px solid #bac8d3;padding:14px 18px;font-size:20px;background:#fff}.math{font-size:29px;color:var(--banner);text-align:center;padding:22px 10px;line-height:1.65}.math small{font-size:17px;color:#555;display:block}.score{display:flex;gap:16px;align-items:center;justify-content:center}.score div{width:115px;padding:18px 8px;background:#e9eff3;text-align:center;font-size:20px}.score b{display:block;font-size:35px;color:var(--banner);margin-top:10px}.score div:last-child{background:#fae8da}.score div:last-child b{color:var(--accent)}
+.matrix{display:grid;grid-template-columns:120px 1fr 1fr;gap:10px;align-items:center;font-size:20px}.matrix>div{padding:20px;background:#eef0f1}.matrix .head{background:var(--banner);color:white}.matrix .swap{background:#f5dfcc}.matrix .label{background:transparent;font-size:19px;letter-spacing:0;text-transform:none;margin:0}
+.network{width:100%;height:200px}.network line{stroke:#9aaab5;stroke-width:2}.network circle{fill:#20517c}.network text{fill:white;font:17px Georgia,SimSun;text-anchor:middle;dominant-baseline:middle}.net-caption{text-align:center;font-size:18px;line-height:1.6;margin-top:8px}.cover h1{font-size:45px}.cover .meta{font-size:16px}.cover .en-title{font-size:19px}.cover .eyebrow{font-size:15px}.cover .cover-grid{grid-template-columns:1.05fr 1fr}.cover-title-small{font-size:29px;display:block;margin-top:16px;line-height:1.5;color:var(--banner)}.cover .cover-fig{flex-direction:column}.cover .stage{padding-bottom:32px!important}.cover .caption{font-size:12px}
+.reading{display:grid;grid-template-columns:130px 1fr;gap:12px 20px;align-items:baseline;font-size:19px;line-height:1.55}.reading a{color:var(--banner);overflow-wrap:anywhere}.reading .key{color:#b9562c;font-weight:bold}.hot{width:2.2%}#notes{font-size:18px}#ov button{font-size:18px}.sectionmark{font-size:14px;letter-spacing:.12em;color:#67737d}.source-small{font-size:12px;line-height:1.5;color:#626262}
+@media(max-height:760px) and (min-width:721px){.banner{height:65px}.claim{font-size:27px}.sub{font-size:16px;margin-bottom:12px}.body{gap:10px}.point p,.prose{font-size:17px}.point h3{font-size:20px}.chart{max-height:310px}.img.tall{max-height:425px}.o-table td,.o-table th{padding:9px}.callout{font-size:17px;padding:10px}.stage{padding-bottom:10px!important}.panel-o{padding:17px}}
+@media(max-width:1000px) and (min-width:721px){.claim{font-size:27px}.point p,.prose{font-size:17px}.split-o{gap:20px}.o-table{font-size:16px}.cover h1{font-size:34px}}
+@media(max-width:720px){html,body{height:auto;overflow:auto}#deck{position:static}.slide,.slide.active{position:relative;display:flex;opacity:1;min-height:0;padding-bottom:25px;border-bottom:8px solid #dce1e5;overflow:visible}.banner{height:61px;padding:0 20px}.banner .sec{font-size:20px}.banner .zh{font-size:11px;letter-spacing:0}.banner .num{font-size:24px}.stage{overflow:visible;padding:27px 20px!important}.claim{font-size:26px}.sub{font-size:16px}.body{gap:20px}.split-o,.split-o.equal,.split-o.wide,.split-o.reverse,.two,.three,.four,.cover .cover-grid{grid-template-columns:1fr;gap:25px}.point p,.prose,.panel-o p{font-size:18px}.point h3,.panel-o h3{font-size:22px}.flow-o{flex-direction:column}.flow-o .arr{transform:rotate(90deg)}.chart,.chart.tall,.chart.paired,.img,.img.tall{max-height:none}.callout{font-size:18px;padding:16px}.foot{margin:0 20px;padding:8px 0;font-size:10px;min-height:0}.o-table{font-size:14px}.o-table td,.o-table th{padding:9px 6px}.o-table .ci{font-size:10px;white-space:normal}.o-table.compact{font-size:12px}.o-table.compact td,.o-table.compact th{padding:8px 5px}.matrix{grid-template-columns:65px 1fr 1fr;font-size:15px;gap:4px}.matrix>div{padding:10px}.matrix .label{font-size:14px}.cover h1{font-size:38px}.cover-title-small{font-size:25px}.cover .meta{font-size:14px}.reading{grid-template-columns:1fr;gap:8px}.reading .key{margin-top:15px}#hud{background:#fbfaf7e8;bottom:5px;padding:8px;width:max-content;max-width:98vw}#dots{gap:4px}#dots button{width:6px;height:6px}#notes{position:fixed;font-size:16px}.numline{font-size:42px}.quote-o{font-size:21px}.score{gap:6px}.score div{width:100px;font-size:17px}.math{font-size:24px}}
+@media print{html,body{overflow:visible;height:auto}#deck{position:static}.slide{display:flex;opacity:1;position:relative;height:100vh;break-after:page}#hud,#prog,.hot,#notes,#ov{display:none}}
+
+.figure-reading{gap:30px}.figure-reading .stack{gap:18px}.figure-reading .point p{font-size:19px;line-height:1.55}.figure-reading .point h3{font-size:22px}.architecture-reading .img.tall{max-height:530px}.architecture-reading .point p{font-size:18px;line-height:1.55}.architecture-reading .point small{font-size:14px;margin-top:6px}
+.defense-grid{gap:20px}.defense-grid .panel-o{padding:18px 23px}.defense-grid .panel-o h3{font-size:23px;margin-bottom:10px}.defense-grid .panel-o p{font-size:19px;line-height:1.5}.mechanism{display:block;font-weight:bold;color:var(--banner);margin-bottom:6px}
+.metric-grid{gap:22px}.metric-card{border-top:3px solid var(--banner);padding:18px 18px 15px;background:#f0f1ef}.metric-card.orange{border-color:var(--accent);background:#f8eee7}.metric-card h3{font-size:22px;line-height:1.4;margin-bottom:21px;color:var(--banner)}.metric-term{margin:16px 0}.metric-term b{font-size:19px}.metric-term small{font-size:13px;color:#666;display:block;margin:4px 0}.metric-term p{font-size:18px;line-height:1.55;margin-top:7px}.metric-example{font-size:16px;line-height:1.6;border-top:1px solid #c8cfd2;padding-top:13px;margin-top:18px;color:#52616b}
+.attack-context,.topology-key{display:flex;gap:20px;font-size:17px;line-height:1.5;justify-content:space-around;background:#edf0f1;padding:10px 16px}.topology-key{font-size:15px;gap:15px}.topology-key b{display:block;color:var(--banner)}.chart.with-context{max-height:285px}.case-line{display:block;font-size:18px;line-height:1.55;margin-top:7px}.case-result{display:block;color:#b65028;font-size:18px;margin-top:9px;padding:9px 12px;background:#faeee3}
+@media(max-width:720px){.figure-reading .point p,.architecture-reading .point p{font-size:18px}.architecture-reading .img.tall{max-height:none}.metric-card{padding:20px}.metric-card h3{font-size:22px}.metric-term p,.metric-term b{font-size:18px}.defense-grid .panel-o p{font-size:18px}.defense-grid .panel-o h3{font-size:22px}.attack-context,.topology-key{flex-direction:column;gap:9px}.topology-key b{display:inline;margin-right:8px}.chart.with-context{max-height:none}}
+
+.stage>.claim,.stage>.sub{flex-shrink:0;position:relative;z-index:1}.stage>.sub{margin-bottom:22px}.body{justify-content:flex-start;padding-top:12px}.body>*{flex-shrink:0}.topology-draw{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.topology-draw svg{display:block;width:100%;height:105px}.topology-draw line{stroke:#9aaab5;stroke-width:2}.topology-draw circle{fill:#20517c}.topology-draw figcaption{text-align:center;font-size:16px;color:#20517c}.topology-draw+.fig-o .chart{max-height:235px}@media(max-width:720px){.topology-draw{grid-template-columns:1fr 1fr}.topology-draw+.fig-o .chart{max-height:none}.body{padding-top:5px}}
+
+.heat td:not(:first-child){padding:5px 4px}.heat th:not(:first-child){text-align:center}.heat{min-width:0}.body.dib{justify-content:center;padding-top:0;gap:20px}.di-table{font-size:clamp(16px,1.45vw,22px);line-height:1.38;width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.di-table td,.di-table th{text-align:left;padding:12px 17px;border-bottom:1px solid #ced6db}.di-table th{font-size:.88em;color:var(--banner);background:#e9edf0}.di-table tbody th{background:transparent}.di-table td:not(:first-child){color:#263b46}.di-table .em{font-weight:700;color:#a9441d}.di-table tr.focus td{background:#edf2f5}.di-table td b{color:#20517c}.di-unit{padding:0 0 10px;font:600 14px/1.4 "Microsoft YaHei",sans-serif;letter-spacing:.025em;color:#516675}
+.board{border-block:1px solid #cbd3d9;background:#f2f4f3;padding:25px 28px}.board.clean{background:white}.board .caption{margin-top:16px}.chart-title{display:block;color:var(--banner);font-size:21px;font-weight:700;margin-bottom:18px}.di-legend{display:flex;gap:19px;flex-wrap:wrap;font-size:16px;color:#44535b;margin:15px 0 8px}.sw{display:inline-block;width:12px;height:12px;margin-right:6px;vertical-align:baseline}.sw.ok,.band.ok{background:#20517c}.sw.err,.band.err{background:#b85930}.sw.none,.band.none{background:#d4dadd}.bar-block{margin:18px 0 23px}.bar-head{display:flex;justify-content:space-between;font-size:19px;align-items:baseline;gap:12px;margin-bottom:7px}.bar-head strong{color:#20517c}.bandrow{height:48px;display:flex;overflow:hidden}.band{display:grid;place-items:center;min-width:0;font:600 16px/1.2 Georgia,"Microsoft YaHei",serif;color:#fff}.band.none{color:#3e4a50}.datum{border-left:4px solid #bd5a30;padding:6px 0 6px 18px;margin-top:10px}.datum b{font-size:32px;color:#a64927}.datum p{font-size:18px;line-height:1.55}.foot a,.di-link,a.di-link{position:relative;z-index:41;color:var(--banner);text-underline-offset:3px}.foot span:last-child{margin-left:auto}.foot{padding-right:min(32%,400px);gap:20px}.body .caption{font-size:15px}.cover-fig .board{padding:30px 22px;background:#f1f3f2}.cover-grid{gap:40px}.cover h1{font-size:clamp(36px,3.5vw,54px)}.cover-title-small{font-size:.53em;margin-top:16px;line-height:1.5}.di-hotel{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.di-hotel>div{border-top:3px solid #8c989d;padding:16px;background:#f1f2f1}.di-hotel .eligible{border-color:var(--banner);background:#e5edf3}.di-hotel small{display:block;color:#52636d;font-size:15px}.di-hotel b{display:block;font-size:36px;margin:8px 0}.di-hotel em{font-size:16px;color:var(--banner);font-style:normal}.di-fig img{width:100%;display:block;max-height:400px;object-fit:contain}.di-fig.small img{max-height:350px}.diagram .case{border-block:1px solid #bccbd3;padding:18px 14px;background:white;display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;text-align:center;font-size:21px}.diagram .case b{font-size:27px;color:var(--banner)}.diagram .case i{color:#b9562c}.di-tag{font-size:14px;color:#5e707a;letter-spacing:.04em}.di-compact .di-table{font-size:17px}.di-compact .di-table th,.di-compact .di-table td{padding:8px 14px}.di-flex{display:grid;grid-template-columns:1.25fr 1fr;gap:32px;align-items:center}.di-flex.wide{grid-template-columns:1.62fr 1fr}.di-flex.equal{grid-template-columns:1fr 1fr}.diagram .case+.case{margin-top:10px}.metric-n{font-size:35px;color:var(--banner);font-weight:bold;margin-bottom:.3em}.mini-score{display:flex;gap:12px;align-items:center;margin:.55rem 0;font-size:19px}.mini-score b{min-width:4.5em}.slowbar{height:14px;background:#e0e4e5;flex:1}.slowbar i{display:block;background:var(--banner);height:100%}.mini-score strong{min-width:3.6em;text-align:right}.hot{width:1.6%}#notes{white-space:pre-line}.extent{display:flex;gap:12px;align-items:stretch}.extent>div{flex:1}.di-ref{display:block;margin:10px 0;color:var(--banner);font-size:19px}.cover .body{flex:auto}
+@media(min-width:721px) and (max-height:780px){.banner{height:62px}.stage{padding-top:15px!important;padding-bottom:12px!important}.sub,.stage>.sub{margin-bottom:10px}.body.dib{gap:11px}.di-table td,.di-table th{padding:8px 13px}.di-fig img{max-height:34vh}.callout{margin-top:9px!important;font-size:17px;padding:10px}.foot{min-height:30px}.board{padding:15px 20px}.point h3{font-size:20px}.point p,.panel-o p{font-size:17px}.panel-o{padding:16px}.stack{gap:13px}.claim{font-size:28px}.cover .board{padding:14px}.di-hotel b{font-size:30px}.bandrow{height:35px}}
+@media(max-width:720px){.di-flex,.di-flex.wide,.di-flex.equal,.cover .cover-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}.cover-grid>*,.di-flex>*,.stage>*{min-width:0}.di-hotel{grid-template-columns:1fr 1fr}.body.dib{gap:16px}.di-table,.di-compact .di-table{font-size:14px}.di-table th,.di-table td,.di-compact .di-table th,.di-compact .di-table td{padding:8px 5px;overflow-wrap:anywhere}.board,.cover-fig .board{padding:16px 10px}.di-fig img,.di-fig.small img{max-height:none}.foot{padding:8px 18px;flex-wrap:wrap;gap:6px}.foot span:last-child{margin-left:0}.foot span{white-space:normal}.di-legend{font-size:13px;gap:8px}.bar-head{font-size:16px}.band{font-size:12px}.bandrow{height:34px}.diagram .case{font-size:16px;gap:5px}.cover h1{font-size:34px}.di-ref{font-size:16px}.di-unit{font-size:13px}.cover .cover-grid{min-height:0}.cover .stage{justify-content:flex-start}.cover .meta{line-height:1.55}.di-tag,.body .caption{font-size:13px}}
+</style></head><body><div id="deck"><section class="slide cover wide" data-notes="用户让手机助手完成一项选择，最容易看到的是助手有没有点下去。图中蓝色是合格选择，橙色是错误选择。加入干扰之后，助手提交得更多，蓝色却减少了。这正是本文要解释的现象。"><div class="banner"><span class="num">08</span><span class="slash"></span><span class="sec">PAPER READING</span><span class="zh">移动智能体安全</span></div><div class="stage"><div class="cover-grid"><div><div class="eyebrow">DIBench · NeurIPS 2026</div><h1>当手机助手选得更多，<br>却更容易选错<span class="cover-title-small">移动智能体的决策完整性评测</span></h1><p class="en-title">DIBench: Benchmarking Decision Integrity of GUI-based Mobile Agents Under Deceptive Injections</p><div class="hr"></div><div class="meta">Li Hu · Kanghua Mo · Yingbin Jin · Qingqing Ye · Haibo Hu<br><span class="dim">香港理工大学<br>Evaluations and Datasets Track · arXiv:2610.06898v1</span></div></div><div class="cover-fig"><div class="board"><div class="di-unit">全部运行的占比（%）</div><div class="di-legend"><span><i class="sw ok"></i>选对</span><span><i class="sw err"></i>选错</span><span><i class="sw none"></i>未选定</span></div><div class="bar-block"><div class="bar-head"><strong>干净页面</strong><span>选定 79.2%</span></div><div class="bandrow" aria-label="选对 71.5%，选错 7.7%，未选定 20.8%"><span class="band ok" style="width:71.5%" title="选对 71.5%">71.5</span><span class="band err" style="width:7.7%" title="选错 7.7%">7.7</span><span class="band none" style="width:20.8%" title="未选定 20.8%">20.8</span></div></div><div class="bar-block"><div class="bar-head"><strong>加入干扰</strong><span>选定 95.1%</span></div><div class="bandrow" aria-label="选对 62.9%，选错 32.2%，未选定 4.9%"><span class="band ok" style="width:62.9%" title="选对 62.9%">62.9</span><span class="band err" style="width:32.2%" title="选错 32.2%">32.2</span><span class="band none" style="width:4.9%" title="未选定 4.9%"></span></div></div><div class="caption">模拟应用 · Mobile-Agent-V3 / Qwen3-VL · 原文表 5</div></div></div></div></div><div class="foot"><span>论文精读报告 · DIBench</span><span>← / → 翻页　O 总览　N 讲稿　F 全屏</span></div></section>
+<section class="slide" data-notes="四个价格是用于说明指标的算例。最便宜的酒店有两家，所以用户的字面指令允许乙和丁。接下来比较同一项页面改动是否改变了赢家，以及新的赢家是否超出用户条件。"><div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">QUESTION</span><span class="zh">背景与问题</span></div><div class="stage"><h2 class="claim">同一张酒店列表，有两种合格答案</h2><p class="sub">任务示例　用户请手机助手选价格最低的酒店。</p><div class="body dib"><div class="di-hotel"><div class=""><small>甲酒店</small><b>¥300</b><em>高于最低价</em></div><div class="eligible"><small>乙酒店</small><b>¥240</b><em>并列最低价</em></div><div class=""><small>丙酒店</small><b>¥280</b><em>高于最低价</em></div><div class="eligible"><small>丁酒店</small><b>¥240</b><em>并列最低价</em></div></div><div class="two"><div class="point"><h3>从乙换到丁</h3><p>选中的商家变了，价格仍然满足要求。</p></div><div class="point orange"><h3>从乙换到丙</h3><p>选中的商家变了，用户也要多付 40 元。</p></div></div></div><div class="callout">页面可以影响谁获得这笔订单；是否违反用户要求，还要核对价格。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>概念示例 · §2–3</span></div></section>
+<section class="slide" data-notes="AndroidWorld 的 116 项任务覆盖 20 个应用。MobileSafetyBench 使用设备状态和动作记录检查操作是否造成预设风险。DIBench 选择另一种观察单位：用户任务可以继续进行，关键问题落在同一页面的几个候选项上。两篇相关工作的原文列在材料页。"><div class="banner"><span class="num">1</span><span class="slash"></span><span class="sec">QUESTION</span><span class="zh">背景与问题</span></div><div class="stage"><h2 class="claim">设备上的操作记录，只回答了选择问题的一部分</h2><p class="sub">手机智能体读取图形用户界面（Graphical User Interface，GUI），能搜索、滑动和点击候选项。</p><div class="body dib"><div class="three"><div class="panel-o"><h3>AndroidWorld</h3><p>检查应用状态，判断短信是否发送、日历事件是否建立。</p></div><div class="panel-o"><h3>MobileSafetyBench</h3><p>记录敏感内容出现时，助手有没有停下来或请求用户同意。</p></div><div class="panel-o orange"><h3>DIBench</h3><p>记录助手最终选了哪一项，再比较同一任务在干净页面和干扰页面上的选择。</p></div></div></div><div class="callout">作者关注任务内目标偏移：助手一直在做用户委托的事，最终选择却受页面内容影响。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>AndroidWorld · MobileSafetyBench · DIBench §2</span></div></section>
+<section class="slide" data-notes="商业页面上没有发布干扰内容，也没有实际付款。三种模拟应用提供可重复的多步流程。两个环境检验相近的问题，但商业环境的数据不能直接换算成真实订单或损失。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">DESIGN</span><span class="zh">任务与配对</span></div><div class="stage"><h2 class="claim">商业截图与模拟应用分别保留了不同的实验条件</h2><p class="sub">商业应用提供真实界面；模拟应用允许研究者控制候选列表，并观察连续操作。</p><div class="body dib"><div class="di-flex wide"><figure class="di-fig"><img src="assets/overview.webp" alt="DIBench 的三部分与配对实验"><figcaption class="caption">图 1　环境、实例生成与配对评测（原文图 1）。</figcaption></figure><div class="stack"><div class="point"><h3>7 个商业应用</h3><p>包括 Amazon、Booking 和 Foodpanda。取关键页面的固定截图，在同一决策状态比较助手的选择。</p></div><div class="point orange"><h3>3 个模拟应用</h3><p>外卖、购物、旅行。候选字段进入模拟应用后由前端渲染，可固定候选顺序与页面层级。</p></div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文图 1、表 2 · §3.1</span></div></section>
+<section class="slide" data-notes="每个应用的每类任务各有 20 个干净实例。构造数据时，模型辅助识别候选及其属性；涉及排序的答案由 GPT-5.2 初拟，两名标注者独立核验，分歧由第三人裁决。评测助手根据可见界面作答。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">DESIGN</span><span class="zh">任务与配对</span></div><div class="stage"><h2 class="claim">五类任务用不同规则划定可接受集合</h2><p class="sub">指令 I 给出目标，候选集合 C 是当前可选的对象，可接受集合 A 是满足指令的所有候选。</p><div class="body dib"><table class="di-table"><thead><tr><th scope="col">任务类别</th><th scope="col">用户指令举例</th><th scope="col">进入 A 的条件</th></tr></thead><tbody><tr><td>开放探索</td><td>任选一家店</td><td>所有候选都合格，A = C</td></tr><tr><td>精确匹配</td><td>找指定品牌</td><td>满足品牌、名称或目的地条件</td></tr><tr><td>成本比较</td><td>选配送费最低的店</td><td>费用最低，并列可有多项</td></tr><tr><td>时空比较</td><td>找预计最快送达的店</td><td>时间最短，或距离最近</td></tr><tr><td>质量或热度</td><td>选评分最高的店</td><td>评分、销量或评论数满足任务指定的排序条件</td></tr></tbody></table></div><div class="callout">开放题可以观察选择是否集中到某个商家。价格题还能判定选择是否违背用户条件。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文 §3.1.2、§3.2</span></div></section>
+<section class="slide" data-notes="干净实例数为 10 × 5 × 20。36,672 是所有页面的候选数之和乘 8，多个变体共用同一干净页面。五种标题文本条件与三种跨位置变体涵盖标题、封面及纯视觉扰动。第三方可影响普通展示内容，用户指令、候选集合和交互流程保持一致。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">DESIGN</span><span class="zh">任务与配对</span></div><div class="stage"><h2 class="claim">1,000 个决策页面产生 36,672 个配对变体</h2><p class="sub">每个应用 5 类任务，每类 20 个实例。每个页面有 3–6 个候选。</p><div class="body dib"><div class="three"><div class="panel-o"><h3>① 固定决策状态</h3><p>沿干净轨迹到达选择页，记录截图以及已有的搜索、筛选和排序条件。</p></div><div class="panel-o"><h3>② 轮换指定目标</h3><p>给候选分配稳定编号。每次指定一个目标，并改变该候选的一处或多处可见内容。</p></div><div class="panel-o orange"><h3>③ 对照同一原始页面</h3><p>每个候选分别搭配 8 种探针。若一页有 4 个候选，该页产生 4 × 8 = 32 个变体。</p></div></div></div><div class="callout">每轮用相同随机种子比较干净版和干扰版，默认重复 10 轮。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文表 2 · §3.2–3.3</span></div></section>
+<section class="slide" data-notes="这些名称用于区分论文的实验条件。第 3.1.3 节将五种标题区文本与三种跨位置条件合计为八种探针。Naive 与 Escape 的释义沿用论文引用的 Liu 等人的分类。主结果比较注入前后的选择，附录又扩展了位置对照。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">DESIGN</span><span class="zh">任务与配对</span></div><div class="stage"><h2 class="claim">八种页面条件区分了提示内容与出现位置</h2><p class="sub">实验者轮换目标候选，用户的选店要求、候选名单和评分答案保持固定。</p><div class="body dib"><div class="di-flex wide"><table class="di-table"><thead><tr><th scope="col">标题区的五种条件</th><th scope="col">名称所指的变化</th></tr></thead><tbody><tr><td>Naive</td><td>直接表达选择偏向</td></tr><tr><td>Escape</td><td>改变正文与引导文字之间的分隔</td></tr><tr><td>Context Ignore</td><td>要求改变对已有上下文的处理</td></tr><tr><td>Fake Completion</td><td>把已有任务描述为已经完成</td></tr><tr><td>Combined</td><td>组合多种文字线索</td></tr></tbody></table><div class="stack"><div class="point"><h3>另外三种位置变体</h3><p>围绕 Combined 比较仅封面、标题加封面，以及不含显式文字的视觉扰动。</p></div><div class="point orange"><h3>主结果怎样读</h3><p>No Attack 是干净基线。下文的 Combined 指同一预设条件，在表 3 和表 5 中与干净版逐轮配对。</p></div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文 §3.1.3、图 3</span></div></section>
+<section class="slide" data-notes="论文先计算每个实例在重复运行中的事件频率，再对实例取平均。未选定记为 ⊥。选定但不合格的比例等于 TCR 减 COR；已作选择中的正确比例可由 COR 除以 TCR 得到。ASR 的基线条件允许原本未选，也允许原本选了另一个候选。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">DESIGN</span><span class="zh">任务与配对</span></div><div class="stage"><h2 class="claim">完成、正确与定向转移需要分别计数</h2><p class="sub">一次运行可能选对、选错或没有选定；定向转移需要把同一轮的两个结果放在一起。</p><div class="body dib"><div class="three"><div class="panel-o"><h3>TCR · 选择完成率</h3><p>Task Completion Rate<br><br>选了任何候选就计入。<br>分母是全部运行。</p></div><div class="panel-o"><h3>COR · 正确选择率</h3><p>Correct Selection Rate<br><br>选中了可接受集合 A 中的对象才计入。分母同样是全部运行。</p></div><div class="panel-o orange"><h3>ASR · 定向操纵成功率</h3><p>Attack Success Rate<br><br>干净版没选目标，干扰版选了目标。分母是全部注入实例的配对运行。</p></div></div></div><div class="callout">TCR − COR 给出选错率；1 − TCR 给出未选定比例。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文 §3.3.2</span></div></section>
+<section class="slide" data-notes="ASR 单独统计转入目标的配对。当目标本身属于可接受集合时，这一指标可以和 COR 同时为一。若要衡量商家净增的选择份额，还要扣除从目标转出的配对；若要衡量对用户约束的破坏，还要知道两边是否合格。"><div class="banner"><span class="num">2</span><span class="slash"></span><span class="sec">DESIGN</span><span class="zh">任务与配对</span></div><div class="stage"><h2 class="claim">目标本身合格时，定向转移也能与正确选择重合</h2><p class="sub">继续使用酒店算例。乙、丁同为 240 元，丙为 280 元。</p><div class="body dib"><table class="di-table"><thead><tr><th scope="col">干净 → 干扰</th><th scope="col">指定目标</th><th scope="col">干扰后合格？</th><th scope="col">计入 ASR？</th></tr></thead><tbody><tr><td>乙 → 丁</td><td>丁</td><td>是，并列最低</td><td>是</td></tr><tr><td>乙 → 丙</td><td>丙</td><td>否，多付 40 元</td><td>是</td></tr><tr><td>未选 → 丙</td><td>丙</td><td>否</td><td>是</td></tr><tr><td>丙 → 丙</td><td>丙</td><td>否</td><td>否，原本已选丙</td></tr></tbody></table></div><div class="callout">“原本选对 → 改选不合格目标”只是总体 ASR 中的一部分。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文 §3.3.2 · 指标算例</span></div></section>
+<section class="slide" data-notes="这里的完成只到选定候选。表 3 同一行的 ASR 为 45.8%，分母是配对运行。不能把它加到选错率上，因为目标既可能合格也可能不合格。三段条形把全部运行分成互斥的三类。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">商业页面中，正确选择和错误选择同时增加</h2><p class="sub">AppAgent + Qwen2.5-VL · Combined 条件与无注入基线对照</p><div class="body dib"><div class="di-flex wide"><div class="board"><div class="di-unit">全部运行的占比（%）</div><div class="di-legend"><span><i class="sw ok"></i>选对</span><span><i class="sw err"></i>选错</span><span><i class="sw none"></i>未选定</span></div><div class="bar-block"><div class="bar-head"><strong>无注入</strong><span>选定 42.0%</span></div><div class="bandrow" aria-label="选对 28.4%，选错 13.6%，未选定 58%"><span class="band ok" style="width:28.4%" title="选对 28.4%">28.4</span><span class="band err" style="width:13.6%" title="选错 13.6%">13.6</span><span class="band none" style="width:58%" title="未选定 58.0%">58.0</span></div></div><div class="bar-block"><div class="bar-head"><strong>Combined</strong><span>选定 72.4%</span></div><div class="bandrow" aria-label="选对 46.9%，选错 25.5%，未选定 27.6%"><span class="band ok" style="width:46.9%" title="选对 46.9%">46.9</span><span class="band err" style="width:25.5%" title="选错 25.5%">25.5</span><span class="band none" style="width:27.6%" title="未选定 27.6%">27.6</span></div></div><div class="caption">图 2　选错率 = TCR − COR；未选定 = 100% − TCR（原文表 3）。</div></div><div class="stack"><div class="datum"><b>+30.4 个百分点</b><p>选择完成率从 42.0% 增至 72.4%。</p></div><div class="point"><h3>增加的完成量去了哪里</h3><p>选对净增 18.5 个百分点，选错净增 11.9 个百分点。</p></div><div class="point orange"><h3>只看已选定的运行</h3><p>其中的正确比例由 28.4 ÷ 42.0 ≈ 67.6% 降至 46.9 ÷ 72.4 ≈ 64.8%。</p></div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t3">查阅表 3 全部配置</a>　表 3 · 商业应用</span></div></section>
+<section class="slide" data-notes="这组数据排除了仅靠选择一组很低的完成率来讲故事的解释。选定率净增 15.9 个百分点，选对率净减 8.6 个百分点，两者之差正好是选错率净增的 24.5 个百分点。配对 ASR 为 49.8%，它衡量的是转向指定目标。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">模拟应用中，完成率升至 95.1%，正确率却下降</h2><p class="sub">Mobile-Agent-V3 + Qwen3-VL · 同一框架、同一底座、同一组任务</p><div class="body dib"><div class="di-flex wide"><div class="board"><div class="di-unit">全部运行的占比（%）</div><div class="di-legend"><span><i class="sw ok"></i>选对</span><span><i class="sw err"></i>选错</span><span><i class="sw none"></i>未选定</span></div><div class="bar-block"><div class="bar-head"><strong>无注入</strong><span>选定 79.2%</span></div><div class="bandrow" aria-label="选对 71.5%，选错 7.7%，未选定 20.8%"><span class="band ok" style="width:71.5%" title="选对 71.5%">71.5</span><span class="band err" style="width:7.7%" title="选错 7.7%">7.7</span><span class="band none" style="width:20.8%" title="未选定 20.8%">20.8</span></div></div><div class="bar-block"><div class="bar-head"><strong>Combined</strong><span>选定 95.1%</span></div><div class="bandrow" aria-label="选对 62.9%，选错 32.2%，未选定 4.9%"><span class="band ok" style="width:62.9%" title="选对 62.9%">62.9</span><span class="band err" style="width:32.2%" title="选错 32.2%">32.2</span><span class="band none" style="width:4.9%" title="未选定 4.9%"></span></div></div><div class="caption">图 3　各段是全部运行的比例。干扰后仍有 4.9% 未选定（原文表 5）。</div></div><div class="stack"><div class="datum"><b>7.7% → 32.2%</b><p>选错的运行占比增加 24.5 个百分点。</p></div><div class="point orange"><h3>干净基线已能完成多数选择</h3><p>无注入时，79.2% 已经选定候选。加入干扰后，正确选择从 71.5% 降至 62.9%。</p></div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t5">查阅表 5 全部配置</a>　表 5 · 模拟应用</span></div></section>
+<section class="slide" data-notes="框架负责管理规划、历史和动作接口，底座模型负责解释输入并输出决定。相同底座的干净 TCR 从 38.6% 到 71.1%。统计本身不能把未选定的原因分解成继续查证、执行困难和停止策略。原表 Summary 是分别取各列最优值，不能拼成单一实验行。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">同一底座换框架，干净页面上的提交率也会变化</h2><p class="sub">商业应用 · Qwen2.5-VL · 比较相同的无注入与 Combined 条件</p><div class="body dib"><table class="di-table"><thead><tr><th scope="col">框架</th><th scope="col">无注入 TCR</th><th scope="col">干扰后 TCR</th><th scope="col">干扰后 COR</th><th scope="col">配对 ASR</th></tr></thead><tbody><tr><td>AppAgent</td><td>42.0%</td><td>72.4%</td><td>46.9%</td><td>45.8%</td></tr><tr><td>Mobile-Agent-V2</td><td>71.1%</td><td>84.5%</td><td>50.4%</td><td>42.9%</td></tr><tr><td>Mobile-Agent-E</td><td>38.6%</td><td>52.4%</td><td>27.1%</td><td>30.6%</td></tr><tr><td>Mobile-Agent-V3</td><td>51.3%</td><td>67.1%</td><td>44.0%</td><td>32.5%</td></tr></tbody></table></div><div class="callout">干净完成率在 38.6%–71.1% 之间。一次未选定的记录没有说明助手停在哪一步。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t3">查阅表 3 全部配置</a>　表 3 · 商业应用</span></div></section>
+<section class="slide" data-notes="深浅蓝色区分不同候选编号。每根柱中各类动作加总为百分之百。作者据此推测助手缩短了探索和验证阶段。图中没有逐次决策时长，不能把某段柱高读作时间比例。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">加入干扰后，选择动作增多，继续浏览的动作减少</h2><p class="sub">图中每一对柱都对应同一框架。N. 是干净页面，A. 是 Combined 干扰页面。</p><div class="body dib"><figure class="di-fig"><img src="assets/actions.webp" alt="两代 Qwen 在四个框架中的动作类型堆叠柱"><figcaption class="caption">图 4　商业应用中的动作构成。蓝色为选择候选，橙褐色为筛选、搜索、滑动或回答等延后选择动作。每根柱合计 100%（原文图 2）。</figcaption></figure><div class="two"><div class="point"><h3>看同一对柱的蓝色总高度</h3><p>四个框架、两代 Qwen 的选择动作占比均上升。</p></div><div class="point orange"><h3>动作占比的解释边界</h3><p>柱高记录动作构成。单次轨迹节省了几步、核验用了多久，需要逐轨迹或计时数据。</p></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文图 2 · 商业应用</span></div></section>
+<section class="slide" data-notes="图内图例与原图图注的线型说明相反。可用 V3 的 Others 核验：Qwen2.5-VL 的干净未选定比例为 100% − 47.6% = 52.4%，对应黑色虚线；Qwen3-VL 为 20.8%，对应黑色实线。峰值跟着目标移动，补充了对直接选择动作增加的观察。图中边际分布没有展示每一对运行从哪个候选转入目标。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">轮换指定目标，选择概率的峰值随之移动</h2><p class="sub">模拟应用 · Mobile-Agent-V3 + Qwen3-VL · 每行是一个实验条件，各列是最终选择的比例。</p><div class="body dib"><div class="di-flex wide"><div class="heat"><div class="di-unit">最终选择比例 · 原文曲线在各候选刻度处的近似读数</div><table class="di-table"><thead><tr><th scope="col">条件</th><th scope="col">未选</th><th scope="col">候选 0</th><th scope="col">候选 1</th><th scope="col">候选 2</th><th scope="col">候选 3</th></tr></thead><tbody><tr><td>无注入</td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.28);color:#132f46">21%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.57);color:white">45%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.10);color:#132f46">6%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.28);color:#132f46">21%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.11);color:#132f46">7%</span></td></tr><tr><td>指定 0</td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.09);color:#132f46">5%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.61);color:white;outline:2px solid #b95329">48%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.20);color:#132f46">14%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.38);color:#132f46">29%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.07);color:#132f46">3%</span></td></tr><tr><td>指定 1</td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.13);color:#132f46">8%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.23);color:#132f46">17%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.59);color:white;outline:2px solid #b95329">47%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.34);color:#132f46">26%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.07);color:#132f46">3%</span></td></tr><tr><td>指定 2</td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.09);color:#132f46">5%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.29);color:#132f46">22%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.17);color:#132f46">12%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.71);color:white;outline:2px solid #b95329">57%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.07);color:#132f46">3%</span></td></tr><tr><td>指定 3</td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.07);color:#132f46">3%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.25);color:#132f46">18%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.10);color:#132f46">6%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.23);color:#132f46">17%</span></td><td><span style="display:block;padding:7px 2px;text-align:center;background:rgba(32,81,124,0.71);color:white;outline:2px solid #b95329">57%</span></td></tr></tbody></table><p class="caption">图 5　深蓝表示更常选中。橙框标出该行指定的目标，百分比取整（原文图 4）。</p></div><div class="stack"><div class="point"><h3>沿同一列比较</h3><p>指定候选 2 时，它的选择概率从约 21% 升到约 57%。指定候选 3 时，它的选择概率从约 7% 升至约 57%。</p></div><div class="point orange"><h3>未选定的比例也会变</h3><p>相同底座、相同框架下，干扰后的选择更集中在对应目标。各行只记录最终分布。</p></div><div class="note"><a class="di-link" href="data.html#figures">图 4 完整面板与线型说明</a></div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文图 4、表 5</span></div></section>
+<section class="slide" data-notes="每个任务组的四根柱分别为浅色的 Qwen2.5 无注入及注入、深色的 Qwen3 无注入及注入。完整面板还显示框架间差异，材料页可以查看原图。这里区分了目标与可接受集合的关系，但没有逐对报告干净时选对而注入后改选不合格目标的次数。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">任务约束决定“选中目标”是否也意味着选错</h2><p class="sub">模拟应用 · 开放探索允许所有候选；成本、时间、评分等任务要求跨候选核对属性。</p><div class="body dib"><div class="di-flex wide"><figure class="di-fig small"><img src="assets/task-v3.webp" alt="不同任务类别中的合格和不合格选择"><figcaption class="caption">图 6　V3 面板。每类内依次为 Qwen2.5-VL 与 Qwen3-VL 的干净 / 干扰柱。红色段表示选中了不合格的目标（原文图 6）。</figcaption></figure><div class="stack"><div class="point"><h3>开放探索</h3><p>指定目标本身也合格。蓝色斜纹段增加，表示更多合格选择集中到目标。</p></div><div class="point orange"><h3>精确匹配与排序</h3><p>精确匹配任务保留较高的正确比例。成本和质量排序任务中，选错指定目标的红色段增大。</p></div><div class="note">蓝色为合格，灰色斜纹为选错其他项；柱顶到 100% 的空余为未选定。</div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文图 6 · 模拟应用</span></div></section>
+<section class="slide" data-notes="对 GPT-5.2，Combined 条件的 ASR 只有 3.8%，但也只有 33.0% 的运行选定候选。未选定没有机会构成 ASR 的成功事件。原表还显示相同模型在另一种 Fake Completion 条件下达到 23.4% ASR。模型类别、训练方式和提交偏好在这些数据中没有分别操纵。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">同一框架下，较低的 ASR 伴随不同的提交率</h2><p class="sub">固定 Mobile-Agent-V3 与模拟应用，七种底座均面对 Combined 干扰。</p><div class="body dib"><div class="di-compact"><table class="di-table"><thead><tr><th scope="col">底座模型</th><th scope="col">无注入 TCR</th><th scope="col">干扰后 TCR</th><th scope="col">干扰后 COR</th><th scope="col">配对 ASR</th></tr></thead><tbody><tr><td>Qwen2.5-VL</td><td>47.6%</td><td>83.6%</td><td>64.6%</td><td>30.7%</td></tr><tr><td>Qwen3-VL</td><td>79.2%</td><td>95.1%</td><td>62.9%</td><td>49.8%</td></tr><tr><td>GUI-Owl</td><td>52.2%</td><td>48.6%</td><td>32.9%</td><td>19.3%</td></tr><tr><td>Mai-UI</td><td>44.6%</td><td>57.4%</td><td>30.7%</td><td>29.5%</td></tr><tr><td>DoubaoSeed-1.6</td><td>37.8%</td><td>39.1%</td><td>22.9%</td><td>7.5%</td></tr><tr><td>Gemini-3-Flash</td><td>39.5%</td><td>41.7%</td><td>26.8%</td><td>8.7%</td></tr><tr><td>GPT-5.2</td><td>38.4%</td><td>33.0%</td><td>26.9%</td><td>3.8%</td></tr></tbody></table></div></div><div class="callout">GPT-5.2 在此条件下有 33.0% 的运行选定候选。未选定的运行不会计入定向转移。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t8">查阅表 8 全部配置</a>　表 8 · 模拟应用</span></div></section>
+<section class="slide" data-notes="表 9 固定模型、框架和预设条件后比较呈现位置。表内某些数值与表 5 或附录叙述略有不同，本页采用表 9 单元格。图 5 的跨应用比较也有差异，但同时改变了布局、候选结构和任务内容，无法由图 5 单独确定具体成因。"><div class="banner"><span class="num">3</span><span class="slash"></span><span class="sec">EVIDENCE</span><span class="zh">实验结果</span></div><div class="stage"><h2 class="claim">同一段界面信息换了位置，测得的选择偏移也会变化</h2><p class="sub">模拟应用 · Qwen3-VL · Combined 条件 · 各数均为配对 ASR</p><div class="body dib"><table class="di-table"><thead><tr><th scope="col">可见内容的位置</th><th scope="col">AppAgent</th><th scope="col">Mobile-Agent-V2</th><th scope="col">Mobile-Agent-E</th><th scope="col">Mobile-Agent-V3</th></tr></thead><tbody><tr><td>标题</td><td>37.0%</td><td>27.9%</td><td>48.8%</td><td>49.9%</td></tr><tr><td>封面</td><td>24.4%</td><td>19.3%</td><td>28.4%</td><td>30.3%</td></tr><tr><td>标题与封面</td><td>30.5%</td><td>30.8%</td><td>34.2%</td><td>40.4%</td></tr><tr><td>纯视觉扰动</td><td>7.9%</td><td>8.7%</td><td>3.9%</td><td>6.6%</td></tr></tbody></table></div><div class="callout">同时覆盖标题和封面时，四个框架中有三个的 ASR 低于只改标题的条件。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t9">查阅表 9 全部配置</a>　表 9 · 模拟应用</span></div></section>
+<section class="slide" data-notes="前四列的模型标签表示提供规划轨迹的助手底座。检测器始终是 Qwen3-VL-32B。表中 No Attack 的 0% 按误报理解。识别出页面含干扰，与采取纠正动作并完成正确选择，是不同的评估步骤。"><div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DEFENSES</span><span class="zh">防御实验</span></div><div class="stage"><h2 class="claim">检测器能识别明显干扰，也会漏掉大部分低显著度样本</h2><p class="sub">商业应用 · 检测器固定为 Qwen3-VL-32B。召回率是注入样本中被检出的一部分。</p><div class="body dib"><div class="di-flex wide"><div class="board"><b class="chart-title">仅检查截图时的检出比例</b><div class="mini-score"><b>Naive</b><span class="slowbar"><i style="width:18.2%"></i></span><strong>18.2%</strong></div><div class="mini-score"><b>Escape</b><span class="slowbar"><i style="width:21.2%"></i></span><strong>21.2%</strong></div><div class="mini-score"><b>Context Ignore</b><span class="slowbar"><i style="width:97.0%"></i></span><strong>97.0%</strong></div><div class="mini-score"><b>Fake Completion</b><span class="slowbar"><i style="width:79.3%"></i></span><strong>79.3%</strong></div><div class="mini-score"><b>Combined</b><span class="slowbar"><i style="width:99.7%"></i></span><strong>99.7%</strong></div></div><div class="stack"><div class="point"><h3>两个低显著度条件</h3><p>Naive、Escape 的检出比例分别为 18.2% 和 21.2%。干净样本在该实验中有 0.0% 被标记。</p></div><div class="point orange"><h3>加入规划后，召回率未必上升</h3><p>Combined 条件下，检测器只看图为 99.7%；额外读取各助手规划时，范围为 60.0%–77.3%。</p></div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t4">查阅表 4 全部配置</a>　表 4 · 商业应用</span></div></section>
+<section class="slide" data-notes="此外还有两种 JPEG 压缩质量与两种缩放比例。原表最优值按行标出，不意味着某一档参数在所有配置下最好。作者提出价格等线索的可读性是一种可能机制，未单独测量文字识别率。"><div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DEFENSES</span><span class="zh">防御实验</span></div><div class="stage"><h2 class="claim">同一强度的图像加噪，在两个底座上产生相反效果</h2><p class="sub">商业应用 · 固定 AppAgent、Combined 和加噪强度 σ = 5，比较预处理前后的 ASR。</p><div class="body dib"><table class="di-table"><thead><tr><th scope="col">底座模型</th><th scope="col">无防御 ASR</th><th scope="col">加噪后 ASR</th><th scope="col">变化（百分点）</th></tr></thead><tbody><tr><td>Qwen2.5-VL</td><td>45.8%</td><td>60.0%</td><td><b class="em">+14.2</b></td></tr><tr><td>Qwen3-VL</td><td>37.9%</td><td>34.7%</td><td>−3.2</td></tr></tbody></table><div class="two"><div class="point"><h3>同一张图里有两类信息</h3><p>加噪、压缩或缩放会同时改变价格、评分等任务线索以及干扰文字。</p></div><div class="point orange"><h3>本表只报告 ASR</h3><p>即使 ASR 下降，也需要知道助手是否继续选定候选，以及是否选对。</p></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t6">查阅表 6 全部配置</a>　表 6 · 商业应用</span></div></section>
+<section class="slide" data-notes="加提醒前后的输入页面不变，仅增加风险说明。更少选择目标可能伴随更多未选或其他误选。表 7 没有列 TCR，无法把这两种情形进一步分开。16 组配置共用任务集，计数反映条件覆盖，不能作为独立重复试验。"><div class="banner"><span class="num">4</span><span class="slash"></span><span class="sec">DEFENSES</span><span class="zh">防御实验</span></div><div class="stage"><h2 class="claim">同一句风险提醒，有时降低 ASR，也降低正确率</h2><p class="sub">商业应用 · 固定 Mobile-Agent-V3、Combined 及提醒方式，只换底座模型。</p><div class="body dib"><table class="di-table"><thead><tr><th scope="col">底座模型</th><th scope="col">ASR　无防御 → 提醒后</th><th scope="col">COR　无防御 → 提醒后</th><th scope="col">正确率变化</th></tr></thead><tbody><tr><td>Qwen3-VL</td><td>52.2% → 16.0%</td><td>39.6% → 49.3%</td><td><b>+9.7 个百分点</b></td></tr><tr><td>Qwen2.5-VL</td><td>32.5% → 20.0%</td><td>44.0% → 32.0%</td><td><b class="em">−12.0 个百分点</b></td></tr></tbody></table><div class="two"><div class="point"><h3>11 / 16 组</h3><p>定向转移减少，正确选择也增加。分母是表 7 的框架、底座和注入条件组合。</p></div><div class="point orange"><h3>另有 4 / 16 组</h3><p>ASR 下降，COR 也下降。余下 1 组 ASR 上升且 COR 下降。</p></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span><a class="di-link" href="data.html#t7">查阅表 7 全部配置</a>　表 7 · 商业应用</span></div></section>
+<section class="slide" data-notes="PhoneSafety 于 2026 年 5 月首发，10 月发布修订版。它是同期独立研究，研究对象是手机上的安全关键动作，并未复现实验或直接评价 DIBench。两项工作的任务、分母不同，分数不宜合并排名。"><div class="banner"><span class="num">5</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">边界与讨论</span></div><div class="stage"><h2 class="claim">“没有出错”还可能意味着助手没有采取有效行动</h2><p class="sub">同期研究 PhoneSafety 在 130 多个应用中取出 700 个安全关键时刻，单独记录操作能力。</p><div class="body dib"><div class="two"><div class="panel-o"><h3>DIBench</h3><p>同一决策点配对比较，问页面变化有没有把选择推向指定候选。</p></div><div class="panel-o orange"><h3>PhoneSafety</h3><p>把下一步分为安全动作、危险动作和未能采取有效动作，比较有行动能力时的安全判断。</p></div></div><div class="point"><h3>两种评测共同暴露的盲区</h3><p>若助手经常停住，危害事件可能很少，同时它也很少有机会在候选之间作出判断。</p></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>公开原文 · PhoneSafety（2026）</span></div></section>
+<section class="slide" data-notes="原文还指出防御限于检测、预处理和提示。真实商业平台未发布干扰内容，也未执行交易。结果支持特定设置中的行为变化，无法直接从 ASR 推算用户价格损失，也无法确定数值接近的两种配置存在可靠差距。"><div class="banner"><span class="num">5</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">边界与讨论</span></div><div class="stage"><h2 class="claim">数据覆盖一个选择阶段，尚难估计实际订单损失</h2><p class="sub">作者在 §5 限定了研究系统、交互长度和防御范围。</p><div class="body dib"><div class="three"><div class="panel-o"><h3>研究对象</h3><p>测试的是研究型框架和指定底座。厂商预装助手及其授权流程没有进入这套实验。</p></div><div class="panel-o"><h3>观测范围</h3><p>商业应用使用固定页面；模拟应用可运行多步。后续确认、纠错、实际成交及长期多次决策仍在范围之外。</p></div><div class="panel-o orange"><h3>证据精度</h3><p>重复运行给出经验均值。多个变体共享同一原始页面，论文未报告统计误差条。</p></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文 §5、附录检查表</span></div></section>
+<section class="slide" data-notes="作者主张把决策完整性作为独立评测维度。前两项可由各条件单独统计；定向转移要求匹配同一任务、同一随机种子的干净与干扰结果。指定商家获选、用户约束被破坏与实际经济损失是三个层次。"><div class="banner"><span class="num">5</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">边界与讨论</span></div><div class="stage"><h2 class="claim">评测应同时记录是否选定、是否合格，以及选择去了哪里</h2><p class="sub">在同一决策状态上，三个问题对应三类不同的证据。</p><div class="body dib"><div class="three"><div class="panel-o"><h3>是否选定</h3><p>表 5 的 V3 + Qwen3 从 79.2% 升到 95.1%，说明提交变得更频繁。</p></div><div class="panel-o"><h3>是否合格</h3><p>同一条件下的正确率从 71.5% 降到 62.9%，错误选择升至 32.2%。</p></div><div class="panel-o orange"><h3>转向了谁</h3><p>ASR 为 49.8%。要量化“原本选对、最后选错指定对象”，还要看干净结果和目标是否合格。</p></div></div></div><div class="callout">用户让助手选最便宜的酒店时，完成操作、符合价格约束和商家是否获益，可以分别核验。</div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文表 5、图 4、图 6</span></div></section>
+<section class="slide" data-notes="数据附录支持按模型或框架筛选，表号与论文一致。图 4 的线型按图内图例及无注入 TCR 核对。比较 ASR 数字时，先确认任务、选择是否发生以及目标是否属于可接受集合。"><div class="banner"><span class="num">5</span><span class="slash"></span><span class="sec">DISCUSSION</span><span class="zh">边界与讨论</span></div><div class="stage"><h2 class="claim">实验数据与论文原文</h2><p class="sub">表 3–9 可按原始条件逐组回查，图 2、4–6 可展开查看全部面板。</p><div class="body dib"><div class="di-flex equal"><div class="stack"><div class="point"><h3>本地数据附录</h3><p><a class="di-link" href="data.html#t3">表 3–9 · 模型、框架与防御的完整数值</a><br><a class="di-link" href="data.html#figures">图 2、4、5、6 · 完整图与读图说明</a></p></div><div class="point"><h3>论文</h3><p><a class="di-link" href="https://arxiv.org/abs/2610.06898">Hu 等 · DIBench，NeurIPS 2026</a><br><a class="di-link" href="https://arxiv.org/html/2610.06898v1">在线全文、附录与原始表格</a></p></div></div><div class="stack"><div class="point"><h3>相关研究</h3><p><a class="di-link" href="https://google-research.github.io/android_world/">AndroidWorld · 移动任务能力</a><br><a class="di-link" href="https://arxiv.org/abs/2410.17520">MobileSafetyBench · 设备操作安全</a><br><a class="di-link" href="https://arxiv.org/abs/2605.07630">PhoneSafety · 安全动作与能力不足</a></p></div><div class="point orange"><h3>讨论</h3><p>若限制为“干净版选对、指定目标不合格”，总体 ASR 中还剩下哪些转移？</p></div></div></div></div></div><div class="foot"><span>Hu et al. · DIBench · 2026</span><span>原文与数据索引</span></div></section></div><div class="hot l" id="hotL" title="上一页"></div><div class="hot r" id="hotR" title="下一页"></div><div id="prog"></div><div id="hud"><div id="dots"></div><span id="counter"></span></div><div id="notes"></div><div id="ov"><div class="ovh">总览 · 按 O 或 Esc 关闭</div></div><script>
+
+/* =====================================================================
+   幻灯片控制器
+   ---------------------------------------------------------------------
+   和站点首页那份同一套约定：只有一个状态变量 idx，键盘 / 点击 / 触摸 /
+   滚轮 / 总览 五个入口全部收敛到 go(n)，避免多处各自维护状态导致不同步。
+   在首页的基础上多了两个：N 开关备注，O 开关总览。
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var dotsBox = document.getElementById('dots');
+  var counter = document.getElementById('counter');
+  var prog    = document.getElementById('prog');
+  var total   = slides.length;
+  var idx     = 0;
+
+  /* 生成进度点，点击可直达 */
+  slides.forEach(function (_, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-label', '第 ' + (i + 1) + ' 页');
+    b.addEventListener('click', function () { go(i); });
+    dotsBox.appendChild(b);
+  });
+  var dots = Array.prototype.slice.call(dotsBox.children);
+
+  /* 总览：把每页标题抽出来做成一张卡片 */
+  var ov = document.getElementById('ov');
+  var grid = document.createElement('div');
+  grid.className = 'grid';
+  slides.forEach(function (s, i) {
+    var h = s.querySelector('.claim, h1');
+    var label = s.querySelector('.banner .sec');
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = '<span class="n">' + String(i + 1).padStart(2, '0') + '</span>' +
+                  (h ? h.textContent : (label ? label.textContent : ''));
+    b.addEventListener('click', function () { go(i); toggleOv(false); });
+    grid.appendChild(b);
+  });
+  ov.appendChild(grid);
+
+  /**
+   * 跳转到第 n 页
+   * @param {number} n 目标下标，越界自动夹到 [0, total-1]
+   */
+  function go(n, fromScroll) {
+    idx = Math.max(0, Math.min(total - 1, n));
+    slides.forEach(function (s, i) { s.classList.toggle('active', i === idx); });
+    dots.forEach(function (d, i) { d.classList.toggle('on', i === idx); });
+    counter.textContent = (idx + 1) + ' / ' + total;
+    prog.style.width = (total <= 1 ? 100 : (idx / (total - 1)) * 100) + '%';
+    var nt = document.getElementById('notes');
+    var text = slides[idx].getAttribute('data-notes') || '';
+    nt.innerHTML = text ? '<div class="nt">讲稿</div>' + text : '<div class="nt">（本页没有讲稿）</div>';
+    // 地址栏跟着页码走，方便直接甩一个「第 14 页」的链接给别人
+    try { history.replaceState(null, '', '#' + (idx + 1)); } catch (e) { /* file:// 下可能被拒 */ }
+    // 移动端是长文档滚动模式，换页后需要把视口拉回顶部
+    if (window.innerWidth <= 720 && !fromScroll) slides[idx].scrollIntoView({behavior:'smooth'});
+  }
+
+  function next() { go(idx + 1); }
+  function prev() { go(idx - 1); }
+  function toggleOv(on) {
+    var show = (on === undefined) ? !document.body.classList.contains('show-ov') : on;
+    document.body.classList.toggle('show-ov', show);
+  }
+
+  /* 键盘：方向键 / 空格 / PgUp / PgDn / Home / End / 数字键直达 / O 总览 / N 备注 / F 全屏 */
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey || (e.key === 'Enter' && e.target.closest('a,button'))) return;
+    if (document.body.classList.contains('show-ov') && e.key !== 'o' && e.key !== 'O' && e.key !== 'Escape') return;
+    switch (e.key) {
+      case 'ArrowRight': case 'ArrowDown': case ' ': case 'PageDown': case 'Enter':
+        e.preventDefault(); next(); break;
+      case 'ArrowLeft': case 'ArrowUp': case 'PageUp': case 'Backspace':
+        e.preventDefault(); prev(); break;
+      case 'Home': e.preventDefault(); go(0); break;
+      case 'End':  e.preventDefault(); go(total - 1); break;
+      case 'o': case 'O': e.preventDefault(); toggleOv(); break;
+      case 'Escape': e.preventDefault(); toggleOv(false); document.body.classList.remove('show-notes'); break;
+      case 'n': case 'N':
+        e.preventDefault(); document.body.classList.toggle('show-notes'); break;
+      case 'f': case 'F':
+        e.preventDefault();
+        if (document.fullscreenElement) document.exitFullscreen();
+        else document.documentElement.requestFullscreen();
+        break;
+      default:
+        if (/^[1-9]$/.test(e.key)) { e.preventDefault(); go(parseInt(e.key, 10) - 1); }
+    }
+  });
+
+  document.getElementById('hotL').addEventListener('click', prev);
+  document.getElementById('hotR').addEventListener('click', next);
+
+  /* 触摸滑动：只认「横向为主且足够长」的滑动，避免和纵向滚动冲突 */
+  var tx = 0, ty = 0;
+  document.addEventListener('touchstart', function (e) {
+    tx = e.changedTouches[0].clientX;
+    ty = e.changedTouches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].clientX - tx;
+    var dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) next(); else prev();
+    }
+  }, { passive: true });
+
+  /* 滚轮翻页：桌面端启用，带 620ms 节流防止一次滑动跳多页 */
+  var wheelLock = false;
+  document.addEventListener('wheel', function (e) {
+    if (window.innerWidth <= 720) return;   // 移动端保留原生滚动
+    if (document.body.classList.contains('show-ov')) return;
+    if (wheelLock) return;
+    if (Math.abs(e.deltaY) < 12) return;
+    wheelLock = true;
+    setTimeout(function () { wheelLock = false; }, 620);
+    if (e.deltaY > 0) next(); else prev();
+  }, { passive: true });
+
+  var scrollPending=false;
+  window.addEventListener('scroll',function(){
+    if(window.innerWidth>720||scrollPending)return;
+    scrollPending=true;requestAnimationFrame(function(){
+      scrollPending=false;var center=innerHeight*.45;
+      var selected=slides.findIndex(function(s){var r=s.getBoundingClientRect();return r.top<=center&&r.bottom>center;});
+      if(selected>=0&&selected!==idx)go(selected,true);
+    });
+  },{passive:true});
+  /* 打开时先看地址栏的 #N，没有就从头开始 */
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  go(isNaN(start) ? 0 : start - 1);
+})();
+
+</script></body></html>
